@@ -31,9 +31,14 @@ namespace DataAccessLayer.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool IsActive { get; set; } = true;
-
         public bool IsDeleted { get; set; } = false;
+
+        public bool IsActive { get; set; } = false;
+        public string? EmailVerificationToken { get; set; }
+        public DateTime? EmailVerificationTokenExpiry { get; set; }
+
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
 
         // Navigation properties
         public virtual Tutor Tutor { get; set; }

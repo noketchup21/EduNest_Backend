@@ -57,25 +57,6 @@ namespace EduNest_Backend.Controllers
             }
         }
 
-        // POST /api/user
-        [HttpPost]
-        public async Task<ActionResult<UserResponseDTO>> RegisterAsync([FromBody] RegisterUserDTO dto)
-        {
-            try
-            {
-                if (dto == null)
-                    return BadRequest(new { message = "Invalid request body." });
-
-                var created = await _userService.CreateUserAsync(dto);
-
-                return StatusCode(201, created);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred." });
-            }
-        }
-
         // PUT /api/user/{id}
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateAsync(int id, [FromBody] UserUpdateDto dto)

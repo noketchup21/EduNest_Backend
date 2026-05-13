@@ -14,10 +14,12 @@ namespace BusinessLayer.Services
     public class UserService : IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly ITokenService _tokenService;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUserRepository userRepository, ITokenService tokenService)
         {
             _userRepository = userRepository;
+            _tokenService = tokenService;
         }
 
         public async Task<IEnumerable<UserResponseDTO>> GetAllUsersAsync()
@@ -31,22 +33,6 @@ namespace BusinessLayer.Services
             var user = await _userRepository.FindOneAsync(u => u.UserId == id && !u.IsDeleted);
             if (user == null) return null;
             return user.Adapt<UserResponseDTO>();
-        }
-
-        public async Task<UserResponseDTO> CreateUserAsync(RegisterUserDTO userDto)
-        {
-            var user = userDto.Adapt<User>();
-
-            // Set default properties
-            user.CreatedAt = DateTime.UtcNow;
-            user.IsActive = true;
-            user.IsDeleted = false;
-            user.Password = BCrypt.Net.BCrypt.HashPassword(userDto.Password);
-
-            var createdUser = await _userRepository.AddAsync(user);
-            await _userRepository.SaveChangesAsync();
-
-            return createdUser.Adapt<UserResponseDTO>();
         }
 
         public async Task UpdateUserAsync(int id, UserUpdateDto userDto)

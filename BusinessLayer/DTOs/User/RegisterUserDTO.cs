@@ -17,5 +17,15 @@ namespace BusinessLayer.DTOs.User
         public string Role { get; set; }
 
         public string Phone { get; set; }
+
+        // Student specific
+        public string? School { get; set; }
+
+        // Tutor specific
+        public string? Bio { get; set; }
+
+        // Parent specific
+        public string? Address { get; set; }
+
     }
 }

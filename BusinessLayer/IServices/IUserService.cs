@@ -12,7 +12,6 @@ namespace BusinessLayer.IServices
     {
         Task<IEnumerable<UserResponseDTO>> GetAllUsersAsync();
         Task<UserResponseDTO?> GetUserByIdAsync(int id);
-        Task<UserResponseDTO> CreateUserAsync(RegisterUserDTO dto);
         Task UpdateUserAsync(int id, UserUpdateDto userUpdateDto);
         Task DeleteUserAsync(int id);
     }
