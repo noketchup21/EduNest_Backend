@@ -159,44 +159,33 @@ namespace EduNest_Backend.Controllers
             }
         }
 
-        // POST: api/auth/revoke-token
+        // POST: api/authlogout
         [Authorize]
-        [HttpPost("revoke-token")]
-        public async Task<IActionResult> RevokeTokenAsync()
+        [HttpPost("logout")]
+        public async Task<IActionResult> LogoutAsync()
         {
             try
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 if (string.IsNullOrEmpty(userIdClaim))
-                    return Unauthorized(new
-                    {
-                        message = "Invalid token."
-                    });
+                    return Unauthorized(new { message = "Invalid token." });
 
-                var userId = int.Parse(userIdClaim);
+                await _authService.LogoutAsync(int.Parse(userIdClaim));
 
-                await _authService.RevokeTokenAsync(userId);
-
-                return Ok(new
-                {
-                    message = "Token revoked successfully."
-                });
+                return Ok(new { message = "Logged out successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(new
-                {
-                    message = ex.Message
-                });
+                return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new
-                {
-                    message = "An error occurred while revoking token.",
-                    error = ex.Message
-                });
+                return StatusCode(500, new { message = "An unexpected error occurred." });
             }
         }
     }

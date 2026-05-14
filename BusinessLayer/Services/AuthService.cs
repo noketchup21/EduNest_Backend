@@ -208,13 +208,15 @@ namespace BusinessLayer.Services
             };
         }
 
-        public async Task RevokeTokenAsync(int userId)
+        public async Task LogoutAsync(int userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new KeyNotFoundException($"User {userId} not found.");
 
-            // Clear refresh token — forces re-login
+            if (user.RefreshToken == null)
+                throw new InvalidOperationException("User is already logged out.");
+
             user.RefreshToken = null;
             user.RefreshTokenExpiryTime = null;
             await _userRepository.UpdateAsync(user);
