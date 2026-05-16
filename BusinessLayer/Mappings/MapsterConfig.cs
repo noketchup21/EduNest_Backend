@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.DTOs.User;
 using DataAccessLayer.Entities;
 using Mapster;
@@ -37,6 +38,15 @@ namespace BusinessLayer.Mappings
 
             // ── LoginUserDTO ──────────────────────────────────────────────────
             // No mapping needed — only used to read credentials
+
+            TypeAdapterConfig<Tutor, TutorResponseDTO>.NewConfig()
+                .Map(dest => dest.TutorId, src => src.TutorId)
+                .Map(dest => dest.UserId, src => src.UserId)
+                .Map(dest => dest.Bio, src => src.Bio)
+                .Map(dest => dest.Revenue, src => src.Revenue)
+                .Map(dest => dest.Rating, src => src.Rating)
+                .Map(dest => dest.IsVerified, src => src.IsVerified);
+            // Name, Email, Phone mapped manually in service
         }
     }
 }
