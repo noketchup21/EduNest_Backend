@@ -58,6 +58,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IParentService, ParentService>();
+builder.Services.AddScoped<ITutorService, TutorService>();
 #endregion
 
 builder.Services.AddControllers();
