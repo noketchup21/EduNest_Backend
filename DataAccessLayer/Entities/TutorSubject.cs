@@ -18,6 +18,9 @@ namespace DataAccessLayer.Entities
         [MaxLength(100)]
         public string Level { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PricePerCourse { get; set; }
+
         // Navigation properties
         [ForeignKey("SubjectId")]
         public virtual Subject Subject { get; set; }

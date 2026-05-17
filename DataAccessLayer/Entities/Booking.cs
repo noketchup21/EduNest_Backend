@@ -23,6 +23,9 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(50)]
         public string Mode { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PriceAtBooking { get; set; }
+
         [Required, MaxLength(50)]
         public string Status { get; set; }
 

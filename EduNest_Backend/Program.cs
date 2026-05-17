@@ -49,16 +49,22 @@ builder.Services.Configure<EmailSetting>(
     builder.Configuration.GetSection(EmailSetting.SectionName));
 
 #region ADDSCOPE
+//Repo
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IParentRepository, ParentRepository>();
 builder.Services.AddScoped<ITutorRepository, TutorRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<ITutorSubjectRepository, TutorSubjectRepository>();
+builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+//Service
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddScoped<ITutorService, TutorService>();
+builder.Services.AddScoped<ITutorSubjectService, TutorSubjectService>();
+builder.Services.AddScoped<ISubjectService, SubjectService>();
 #endregion
 
 builder.Services.AddControllers();
