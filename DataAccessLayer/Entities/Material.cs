@@ -14,7 +14,7 @@ namespace DataAccessLayer.Entities
         [Key]
         public int MaterialId { get; set; }
 
-        public int ClassId { get; set; }
+        public int AvailabilityId { get; set; }        // ← links to Availability
 
         [Required, MaxLength(255)]
         public string Title { get; set; }
@@ -25,10 +25,10 @@ namespace DataAccessLayer.Entities
         [MaxLength(500)]
         public string FileUrl { get; set; }
 
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
-        [ForeignKey("ClassId")]
-        public virtual Class Class { get; set; }
+        [ForeignKey("AvailabilityId")]
+        public virtual Availability Availability { get; set; }
     }
 }

@@ -15,7 +15,6 @@ namespace DataAccessLayer.Entities
         public int EssayAnswerId { get; set; }
 
         public int SubmissionId { get; set; }
-
         public int EssayId { get; set; }
 
         [Required, MaxLength(5000)]

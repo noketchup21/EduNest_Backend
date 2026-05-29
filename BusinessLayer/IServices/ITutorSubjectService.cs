@@ -12,7 +12,6 @@ namespace BusinessLayer.IServices
         // Tutor manages their own subjects
         Task<IEnumerable<TutorSubjectResponseDTO>> GetMySubjectsAsync(int tutorUserId);
         Task<TutorSubjectResponseDTO> AddSubjectAsync(int tutorUserId, AddTutorSubjectDTO dto);
-        Task<TutorSubjectResponseDTO> UpdateSubjectAsync(int tutorUserId, int subjectId, UpdateTutorSubjectDTO dto);
         Task<string> RemoveSubjectAsync(int tutorUserId, int subjectId);
 
         // Public — anyone can browse

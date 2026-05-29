@@ -23,8 +23,6 @@ namespace DataAccessLayer.Entities
 
         // Navigation properties
         public virtual ICollection<TutorSubject> TutorSubjects { get; set; } = new List<TutorSubject>();
-        public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public virtual ICollection<Availability> Availabilities { get; set; } = new List<Availability>();
-        public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
     }
 }

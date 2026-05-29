@@ -19,9 +19,6 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(1000)]
         public string QuestionText { get; set; }
 
-        [MaxLength(5000)]
-        public string AnswerText { get; set; }
-
         public double Points { get; set; }
 
         // Navigation properties

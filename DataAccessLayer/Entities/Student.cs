@@ -35,6 +35,6 @@ namespace DataAccessLayer.Entities
         public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public virtual ICollection<ProgressReport> ProgressReports { get; set; } = new List<ProgressReport>();
         public virtual ICollection<Submission> Submissions { get; set; } = new List<Submission>();
-        public virtual ICollection<ClassStudent> ClassStudents { get; set; } = new List<ClassStudent>();
+        public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
     }
 }

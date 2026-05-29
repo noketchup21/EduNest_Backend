@@ -17,13 +17,10 @@ namespace DataAccessLayer.Entities
         public int BookingId { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
-        public decimal Amount { get; set; }
+        public decimal TotalPrice { get; set; }
 
         [Required, MaxLength(50)]
-        public string Method { get; set; }
-
-        [Required, MaxLength(50)]
-        public string Status { get; set; }
+        public string Status { get; set; }   // Pending / Success / Failed / Refunded
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

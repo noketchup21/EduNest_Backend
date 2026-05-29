@@ -19,27 +19,13 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(1000)]
         public string QuestionText { get; set; }
 
-        [Required, MaxLength(500)]
-        public string OptionA { get; set; }
-
-        [Required, MaxLength(500)]
-        public string OptionB { get; set; }
-
-        [Required, MaxLength(500)]
-        public string OptionC { get; set; }
-
-        [Required, MaxLength(500)]
-        public string OptionD { get; set; }
-
-        [Required, MaxLength(1)]
-        public string CorrectOption { get; set; }
-
-        public double Points { get; set; }
+        public double Point { get; set; }
 
         // Navigation properties
         [ForeignKey("HomeworkId")]
         public virtual Homework Homework { get; set; }
 
+        public virtual ICollection<QuestionOption> QuestionOptions { get; set; } = new List<QuestionOption>();
         public virtual ICollection<MultipleChoiceQuestionAnswer> Answers { get; set; } = new List<MultipleChoiceQuestionAnswer>();
     }
 }

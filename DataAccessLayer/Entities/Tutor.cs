@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace DataAccessLayer.Entities
 {
@@ -27,15 +28,22 @@ namespace DataAccessLayer.Entities
 
         public bool IsVerified { get; set; } = false;
 
+        public int? TierId { get; set; }
+
         // Navigation properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
 
+        [ForeignKey("TierId")]
+        public virtual Tier Tier { get; set; }
+
+        public virtual Wallet Wallet { get; set; }
+        public virtual TutorBankAccount BankAccount { get; set; }
         public virtual ICollection<TutorSubject> TutorSubjects { get; set; } = new List<TutorSubject>();
-        public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public virtual ICollection<Availability> Availabilities { get; set; } = new List<Availability>();
         public virtual ICollection<ProgressReport> ProgressReports { get; set; } = new List<ProgressReport>();
         public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
-        public virtual ICollection<Class> Classes { get; set; } = new List<Class>();
+        public virtual ICollection<FavoriteTutor> FavoriteTutors { get; set; } = new List<FavoriteTutor>();
+        public virtual ICollection<Payout> Payouts { get; set; } = new List<Payout>();
     }
 }

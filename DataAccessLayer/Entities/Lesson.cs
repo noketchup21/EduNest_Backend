@@ -22,7 +22,7 @@ namespace DataAccessLayer.Entities
         public int Duration { get; set; }
 
         [Required, MaxLength(50)]
-        public string Status { get; set; }
+        public string Status { get; set; }         // Scheduled / Completed / Cancelled / TutorAbsent / StudentAbsent
 
         [MaxLength(500)]
         public string MeetingLink { get; set; }
@@ -31,6 +31,7 @@ namespace DataAccessLayer.Entities
         [ForeignKey("BookingId")]
         public virtual Booking Booking { get; set; }
 
+        public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
         public virtual ICollection<ProgressReport> ProgressReports { get; set; } = new List<ProgressReport>();
     }
 }
