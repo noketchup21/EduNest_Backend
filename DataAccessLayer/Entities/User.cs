@@ -44,5 +44,7 @@ namespace DataAccessLayer.Entities
         public virtual Tutor Tutor { get; set; }
         public virtual Parent Parent { get; set; }
         public virtual Student Student { get; set; }
+        public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+        public virtual ICollection<ConversationUser> ConversationUsers { get; set; } = new List<ConversationUser>();
     }
 }

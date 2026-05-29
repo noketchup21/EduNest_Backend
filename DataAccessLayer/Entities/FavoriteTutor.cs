@@ -8,32 +8,20 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("Review")]
-    public class Review
+    [Table("FavoriteTutor")]
+    public class FavoriteTutor
     {
         [Key]
-        public int ReviewId { get; set; }
+        public int FavoriteId { get; set; }
 
         public int TutorId { get; set; }
+        public int ParentId { get; set; }
 
-        public int BookingId { get; set; }
-
-        public int? ParentId { get; set; }
-
-        [Column(TypeName = "decimal(3,2)")]
-        public decimal Rating { get; set; }
-
-        [MaxLength(2000)]
-        public string Comment { get; set; }
-
-        public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         [ForeignKey("TutorId")]
         public virtual Tutor Tutor { get; set; }
-
-        [ForeignKey("BookingId")]
-        public virtual Booking Booking { get; set; }
 
         [ForeignKey("ParentId")]
         public virtual Parent Parent { get; set; }

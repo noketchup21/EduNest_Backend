@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace DataAccessLayer.Entities
 {
@@ -16,46 +11,59 @@ namespace DataAccessLayer.Entities
         public DbSet<Tutor> Tutors { get; set; }
         public DbSet<Parent> Parents { get; set; }
         public DbSet<Student> Students { get; set; }
+        public DbSet<Tier> Tiers { get; set; }
 
-        // ── Subject & scheduling ──────────────────────────────────────────────
+        // ── Subject & Availability ────────────────────────────────────────────
         public DbSet<Subject> Subjects { get; set; }
         public DbSet<TutorSubject> TutorSubjects { get; set; }
         public DbSet<Availability> Availabilities { get; set; }
 
-        // ── Booking & payment ─────────────────────────────────────────────────
+        // ── Booking & Payment ─────────────────────────────────────────────────
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Payment> Payments { get; set; }
+
+        // ── Lesson & Tracking ─────────────────────────────────────────────────
         public DbSet<Lesson> Lessons { get; set; }
+        public DbSet<Attendance> Attendances { get; set; }
         public DbSet<ProgressReport> ProgressReports { get; set; }
         public DbSet<Review> Reviews { get; set; }
 
-        // ── Classes & content ─────────────────────────────────────────────────
-        public DbSet<Class> Classes { get; set; }
-        public DbSet<ClassStudent> ClassStudents { get; set; }
+        // ── Learning Content ──────────────────────────────────────────────────
         public DbSet<Homework> Homeworks { get; set; }
         public DbSet<Material> Materials { get; set; }
-
-        // ── Assignments & submissions ─────────────────────────────────────────
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<MultipleChoiceQuestion> MultipleChoiceQuestions { get; set; }
+        public DbSet<QuestionOption> QuestionOptions { get; set; }
         public DbSet<MultipleChoiceQuestionAnswer> MultipleChoiceQuestionAnswers { get; set; }
         public DbSet<Essay> Essays { get; set; }
         public DbSet<EssayAnswer> EssayAnswers { get; set; }
+
+        // ── Chat ──────────────────────────────────────────────────────────────
+        public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<ConversationUser> ConversationUsers { get; set; }
+        public DbSet<Message> Messages { get; set; }
+
+        // ── Wallet & Payout ───────────────────────────────────────────────────
+        public DbSet<Wallet> Wallets { get; set; }
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<Payout> Payouts { get; set; }
+        public DbSet<TutorBankAccount> TutorBankAccounts { get; set; }
+
+        // ── Parent Extras ─────────────────────────────────────────────────────
+        public DbSet<FavoriteTutor> FavoriteTutors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // ── Composite primary keys ────────────────────────────────────────
-
+            // ── Composite PKs ─────────────────────────────────────────────────
             modelBuilder.Entity<TutorSubject>()
                 .HasKey(ts => new { ts.SubjectId, ts.TutorId });
 
-            modelBuilder.Entity<ClassStudent>()
-                .HasKey(cs => new { cs.StudentId, cs.ClassId });
+            modelBuilder.Entity<ConversationUser>()
+                .HasKey(cu => new { cu.ConversationId, cu.UserId });
 
-            // ── User 1:1 relationships ────────────────────────────────────────
-
+            // ── User → Tutor / Parent / Student (1:1) ─────────────────────────
             modelBuilder.Entity<Tutor>()
                 .HasOne(t => t.User)
                 .WithOne(u => u.Tutor)
@@ -74,8 +82,28 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey<Student>(s => s.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── Parent → Student ──────────────────────────────────────────────
+            // ── Tier → Tutor ──────────────────────────────────────────────────
+            modelBuilder.Entity<Tutor>()
+                .HasOne(t => t.Tier)
+                .WithMany(ti => ti.Tutors)
+                .HasForeignKey(t => t.TierId)
+                .OnDelete(DeleteBehavior.SetNull);
 
+            // ── Tutor → Wallet (1:1) ──────────────────────────────────────────
+            modelBuilder.Entity<Wallet>()
+                .HasOne(w => w.Tutor)
+                .WithOne(t => t.Wallet)
+                .HasForeignKey<Wallet>(w => w.TutorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── Tutor → BankAccount (1:1) ─────────────────────────────────────
+            modelBuilder.Entity<TutorBankAccount>()
+                .HasOne(b => b.Tutor)
+                .WithOne(t => t.BankAccount)
+                .HasForeignKey<TutorBankAccount>(b => b.TutorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── Parent → Student ──────────────────────────────────────────────
             modelBuilder.Entity<Student>()
                 .HasOne(s => s.Parent)
                 .WithMany(p => p.Students)
@@ -83,7 +111,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.SetNull);
 
             // ── TutorSubject ──────────────────────────────────────────────────
-
             modelBuilder.Entity<TutorSubject>()
                 .HasOne(ts => ts.Tutor)
                 .WithMany(t => t.TutorSubjects)
@@ -97,7 +124,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Availability ──────────────────────────────────────────────────
-
             modelBuilder.Entity<Availability>()
                 .HasOne(a => a.Tutor)
                 .WithMany(t => t.Availabilities)
@@ -108,21 +134,19 @@ namespace DataAccessLayer.Entities
                 .HasOne(a => a.Subject)
                 .WithMany(s => s.Availabilities)
                 .HasForeignKey(a => a.SubjectId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ── Booking ───────────────────────────────────────────────────────
-            // Restrict on all three FKs to avoid multiple cascade paths
-
             modelBuilder.Entity<Booking>()
-                .HasOne(b => b.Tutor)
-                .WithMany(t => t.Bookings)
-                .HasForeignKey(b => b.TutorId)
+                .HasOne(b => b.Availability)
+                .WithMany(a => a.Bookings)
+                .HasForeignKey(b => b.AvailabilityId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
-                .HasOne(b => b.Subject)
-                .WithMany(s => s.Bookings)
-                .HasForeignKey(b => b.SubjectId)
+                .HasOne(b => b.Parent)
+                .WithMany(p => p.Bookings)
+                .HasForeignKey(b => b.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
@@ -132,7 +156,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ── Payment ───────────────────────────────────────────────────────
-
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Booking)
                 .WithMany(b => b.Payments)
@@ -140,15 +163,30 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Lesson ────────────────────────────────────────────────────────
-
             modelBuilder.Entity<Lesson>()
                 .HasOne(l => l.Booking)
                 .WithMany(b => b.Lessons)
                 .HasForeignKey(l => l.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── ProgressReport ────────────────────────────────────────────────
+            // ── Attendance ────────────────────────────────────────────────────
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Lesson)
+                .WithMany(l => l.Attendances)
+                .HasForeignKey(a => a.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Student)
+                .WithMany(s => s.Attendances)
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Attendance>()
+                .HasIndex(a => new { a.LessonId, a.StudentId })
+                .IsUnique();
+
+            // ── ProgressReport ────────────────────────────────────────────────
             modelBuilder.Entity<ProgressReport>()
                 .HasOne(pr => pr.Lesson)
                 .WithMany(l => l.ProgressReports)
@@ -168,7 +206,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ── Review ────────────────────────────────────────────────────────
-
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.Tutor)
                 .WithMany(t => t.Reviews)
@@ -187,52 +224,21 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(r => r.ParentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // ── Class ─────────────────────────────────────────────────────────
-
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Tutor)
-                .WithMany(t => t.Classes)
-                .HasForeignKey(c => c.TutorId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Class>()
-                .HasOne(c => c.Subject)
-                .WithMany(s => s.Classes)
-                .HasForeignKey(c => c.SubjectId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ── ClassStudent ──────────────────────────────────────────────────
-
-            modelBuilder.Entity<ClassStudent>()
-                .HasOne(cs => cs.Student)
-                .WithMany(s => s.ClassStudents)
-                .HasForeignKey(cs => cs.StudentId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<ClassStudent>()
-                .HasOne(cs => cs.Class)
-                .WithMany(c => c.ClassStudents)
-                .HasForeignKey(cs => cs.ClassId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // ── Homework ──────────────────────────────────────────────────────
-
+            // ── Homework → Booking ────────────────────────────────────────────
             modelBuilder.Entity<Homework>()
-                .HasOne(h => h.Class)
-                .WithMany(c => c.Homeworks)
-                .HasForeignKey(h => h.ClassId)
+                .HasOne(h => h.Booking)
+                .WithMany(b => b.Homeworks)
+                .HasForeignKey(h => h.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── Material ──────────────────────────────────────────────────────
-
+            // ── Material → Availability ───────────────────────────────────────
             modelBuilder.Entity<Material>()
-                .HasOne(m => m.Class)
-                .WithMany(c => c.Materials)
-                .HasForeignKey(m => m.ClassId)
+                .HasOne(m => m.Availability)
+                .WithMany(a => a.Materials)
+                .HasForeignKey(m => m.AvailabilityId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Submission ────────────────────────────────────────────────────
-
             modelBuilder.Entity<Submission>()
                 .HasOne(s => s.Homework)
                 .WithMany(h => h.Submissions)
@@ -245,20 +251,29 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(s => s.StudentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── MultipleChoiceQuestion ────────────────────────────────────────
+            modelBuilder.Entity<Submission>()
+                .HasIndex(s => new { s.HomeworkId, s.StudentId })
+                .IsUnique();
 
+            // ── MultipleChoiceQuestion ────────────────────────────────────────
             modelBuilder.Entity<MultipleChoiceQuestion>()
                 .HasOne(q => q.Homework)
                 .WithMany(h => h.MultipleChoiceQuestions)
                 .HasForeignKey(q => q.HomeworkId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── MultipleChoiceQuestionAnswer ──────────────────────────────────
+            // ── QuestionOption ────────────────────────────────────────────────
+            modelBuilder.Entity<QuestionOption>()
+                .HasOne(qo => qo.MultipleChoiceQuestion)
+                .WithMany(q => q.QuestionOptions)
+                .HasForeignKey(qo => qo.MultipleChoiceQuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
 
+            // ── MultipleChoiceQuestionAnswer ──────────────────────────────────
             modelBuilder.Entity<MultipleChoiceQuestionAnswer>()
-                .HasOne(a => a.MultipleChoiceQuestion)
-                .WithMany(q => q.Answers)
-                .HasForeignKey(a => a.MultipleChoiceQuestionId)
+                .HasOne(a => a.QuestionOption)
+                .WithMany(qo => qo.Answers)
+                .HasForeignKey(a => a.QuestionOptionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<MultipleChoiceQuestionAnswer>()
@@ -268,7 +283,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Essay ─────────────────────────────────────────────────────────
-
             modelBuilder.Entity<Essay>()
                 .HasOne(e => e.Homework)
                 .WithMany(h => h.Essays)
@@ -276,7 +290,6 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── EssayAnswer ───────────────────────────────────────────────────
-
             modelBuilder.Entity<EssayAnswer>()
                 .HasOne(ea => ea.Essay)
                 .WithMany(e => e.EssayAnswers)
@@ -289,24 +302,86 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(ea => ea.SubmissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── Indexes ───────────────────────────────────────────────────────
+            // ── Conversation ──────────────────────────────────────────────────
+            modelBuilder.Entity<Conversation>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // ── ConversationUser ──────────────────────────────────────────────
+            modelBuilder.Entity<ConversationUser>()
+                .HasOne(cu => cu.Conversation)
+                .WithMany(c => c.ConversationUsers)
+                .HasForeignKey(cu => cu.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ConversationUser>()
+                .HasOne(cu => cu.User)
+                .WithMany(u => u.ConversationUsers)
+                .HasForeignKey(cu => cu.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ── Message ───────────────────────────────────────────────────────
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.User)
+                .WithMany(u => u.Messages)
+                .HasForeignKey(m => m.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ── WalletTransaction ─────────────────────────────────────────────
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Wallet)
+                .WithMany(w => w.WalletTransactions)
+                .HasForeignKey(wt => wt.WalletId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── Payout ────────────────────────────────────────────────────────
+            modelBuilder.Entity<Payout>()
+                .HasOne(p => p.Tutor)
+                .WithMany(t => t.Payouts)
+                .HasForeignKey(p => p.TutorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Payout>()
+                .HasOne(p => p.WalletTransaction)
+                .WithOne(wt => wt.Payout)
+                .HasForeignKey<Payout>(p => p.WalletTransactionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ── FavoriteTutor ─────────────────────────────────────────────────
+            modelBuilder.Entity<FavoriteTutor>()
+                .HasOne(f => f.Parent)
+                .WithMany(p => p.FavoriteTutors)
+                .HasForeignKey(f => f.ParentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteTutor>()
+                .HasOne(f => f.Tutor)
+                .WithMany(t => t.FavoriteTutors)
+                .HasForeignKey(f => f.TutorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteTutor>()
+                .HasIndex(f => new { f.ParentId, f.TutorId })
+                .IsUnique();
+
+            // ── Indexes ───────────────────────────────────────────────────────
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
             modelBuilder.Entity<Booking>()
-                .HasIndex(b => new { b.TutorId, b.StudentId, b.Status });
+                .HasIndex(b => new { b.AvailabilityId, b.StudentId, b.Status });
 
             modelBuilder.Entity<Availability>()
                 .HasIndex(a => new { a.TutorId, a.DayOfWeek });
-
-            modelBuilder.Entity<ClassStudent>()
-                .HasIndex(cs => cs.ClassId);
-
-            modelBuilder.Entity<Submission>()
-                .HasIndex(s => new { s.HomeworkId, s.StudentId })
-                .IsUnique(); // one submission per student per homework
         }
     }
 }

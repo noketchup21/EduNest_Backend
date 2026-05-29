@@ -24,6 +24,8 @@ namespace DataAccessLayer.Entities
         public virtual User User { get; set; }
 
         public virtual ICollection<Student> Students { get; set; } = new List<Student>();
+        public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public virtual ICollection<FavoriteTutor> FavoriteTutors { get; set; } = new List<FavoriteTutor>();
     }
 }

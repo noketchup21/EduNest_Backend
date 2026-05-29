@@ -8,18 +8,24 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("TutorSubject")]
-    public class TutorSubject
+    [Table("Wallet")]
+    public class Wallet
     {
-        // Composite PK configured via Fluent API in DbContext
-        public int SubjectId { get; set; }
+        [Key]
+        public int WalletId { get; set; }
+
         public int TutorId { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Balance { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PendingBalance { get; set; } = 0;
+
         // Navigation properties
-        [ForeignKey("SubjectId")]
-        public virtual Subject Subject { get; set; }
- 
         [ForeignKey("TutorId")]
         public virtual Tutor Tutor { get; set; }
+
+        public virtual ICollection<WalletTransaction> WalletTransactions { get; set; } = new List<WalletTransaction>();
     }
 }

@@ -8,17 +8,23 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("TutorSubject")]
-    public class TutorSubject
+    public class TutorBankAccount
     {
-        // Composite PK configured via Fluent API in DbContext
-        public int SubjectId { get; set; }
+        [Key]
+        public int TutorBankAccountId { get; set; }
+
         public int TutorId { get; set; }
 
+        [Required, MaxLength(255)]
+        public string BankName { get; set; }
+
+        [Required, MaxLength(100)]
+        public string AccountNumber { get; set; }
+
+        [Required, MaxLength(255)]
+        public string AccountHolderName { get; set; }
+
         // Navigation properties
-        [ForeignKey("SubjectId")]
-        public virtual Subject Subject { get; set; }
- 
         [ForeignKey("TutorId")]
         public virtual Tutor Tutor { get; set; }
     }

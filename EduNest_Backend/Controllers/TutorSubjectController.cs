@@ -12,6 +12,7 @@ namespace EduNest_Backend.Controllers
     public class TutorSubjectController : ControllerBase
     {
         private readonly ITutorSubjectService _tutorSubjectService;
+
         public TutorSubjectController(ITutorSubjectService tutorSubjectService)
         {
             _tutorSubjectService = tutorSubjectService;
@@ -85,7 +86,7 @@ namespace EduNest_Backend.Controllers
         }
 
         // POST /api/tutorsubject
-        [HttpPost("add-Subject")]
+        [HttpPost]
         [Authorize(Roles = "Tutor")]
         public async Task<ActionResult<TutorSubjectResponseDTO>> AddSubjectAsync(
             [FromBody] AddTutorSubjectDTO dto)
@@ -106,42 +107,6 @@ namespace EduNest_Backend.Controllers
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred." });
-            }
-        }
-
-        // PUT /api/tutorsubject/{subjectId}
-        [HttpPut("{subjectId}")]
-        [Authorize(Roles = "Tutor")]
-        public async Task<ActionResult<TutorSubjectResponseDTO>> UpdateSubjectAsync(
-            int subjectId, [FromBody] UpdateTutorSubjectDTO dto)
-        {
-            try
-            {
-                if (dto == null)
-                    return BadRequest(new { message = "Invalid request body." });
-
-                if (subjectId <= 0)
-                    return BadRequest(new { message = "Invalid subject ID." });
-
-                var userId = GetCurrentUserId();
-                var result = await _tutorSubjectService.UpdateSubjectAsync(userId, subjectId, dto);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
             }
             catch (Exception)
             {

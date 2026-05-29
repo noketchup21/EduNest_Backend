@@ -12,20 +12,17 @@ namespace DataAccessLayer.Entities
     public class MultipleChoiceQuestionAnswer
     {
         [Key]
-        public int MultipleChoiceQuestionsAnswerId { get; set; }
+        public int MultipleChoiceQuestionAnswerId { get; set; }
 
-        public int MultipleChoiceQuestionId { get; set; }
-
+        public int QuestionOptionId { get; set; }      // ← which option selected
         public int SubmissionId { get; set; }
 
-        [Required, MaxLength(1)]
+        [Required, MaxLength(500)]
         public string SelectedOption { get; set; }
 
-        public bool IsCorrect { get; set; }
-
         // Navigation properties
-        [ForeignKey("MultipleChoiceQuestionId")]
-        public virtual MultipleChoiceQuestion MultipleChoiceQuestion { get; set; }
+        [ForeignKey("QuestionOptionId")]
+        public virtual QuestionOption QuestionOption { get; set; }
 
         [ForeignKey("SubmissionId")]
         public virtual Submission Submission { get; set; }

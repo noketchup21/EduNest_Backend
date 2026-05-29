@@ -28,12 +28,15 @@ namespace BusinessLayer.Services
 
         public async Task<IEnumerable<TutorSubjectResponseDTO>> GetMySubjectsAsync(int tutorUserId)
         {
+            // 1. Get tutor by userId
             var tutor = await _tutorRepository.FindOneAsync(t => t.UserId == tutorUserId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
 
+            // 2. Get all tutor subjects
             var tutorSubjects = await _tutorSubjectRepository.FindAsync(ts =>
                 ts.TutorId == tutor.TutorId);
 
+            // 3. Build response
             var result = new List<TutorSubjectResponseDTO>();
             foreach (var ts in tutorSubjects)
                 result.Add(await BuildResponseAsync(ts));
@@ -42,7 +45,7 @@ namespace BusinessLayer.Services
         }
 
         public async Task<TutorSubjectResponseDTO> AddSubjectAsync(
-    int tutorUserId, AddTutorSubjectDTO dto)
+            int tutorUserId, AddTutorSubjectDTO dto)
         {
             // 1. Get tutor
             var tutor = await _tutorRepository.FindOneAsync(t => t.UserId == tutorUserId)
@@ -57,51 +60,17 @@ namespace BusinessLayer.Services
                 ts.TutorId == tutor.TutorId && ts.SubjectId == dto.SubjectId);
 
             if (exists)
-                throw new InvalidOperationException("You have already added this subject.");
+                throw new InvalidOperationException(
+                    $"You already teach '{subject.Name}'.");
 
-            // 4. Validate price
-            if (dto.PricePerCourse <= 0)
-                throw new ArgumentException("Price per course must be greater than 0.");
-
-            // 5. Create tutor subject
+            // 4. Create tutor subject
             var tutorSubject = new TutorSubject
             {
                 TutorId = tutor.TutorId,
-                SubjectId = dto.SubjectId,
-                Level = dto.Level,
-                PricePerCourse = dto.PricePerCourse
+                SubjectId = dto.SubjectId
             };
 
             await _tutorSubjectRepository.AddAsync(tutorSubject);
-            await _tutorSubjectRepository.SaveChangesAsync();
-
-            return await BuildResponseAsync(tutorSubject);
-        }
-
-        public async Task<TutorSubjectResponseDTO> UpdateSubjectAsync(
-            int tutorUserId, int subjectId, UpdateTutorSubjectDTO dto)
-        {
-            // 1. Get tutor
-            var tutor = await _tutorRepository.FindOneAsync(t => t.UserId == tutorUserId)
-                ?? throw new KeyNotFoundException("Tutor profile not found.");
-
-            // 2. Get tutor subject
-            var tutorSubject = await _tutorSubjectRepository.FindOneAsync(ts =>
-                ts.TutorId == tutor.TutorId && ts.SubjectId == subjectId)
-                ?? throw new KeyNotFoundException("Subject not found in your list.");
-
-            // 3. Update fields
-            if (!string.IsNullOrWhiteSpace(dto.Level))
-                tutorSubject.Level = dto.Level;
-
-            if (dto.PricePerCourse.HasValue)
-            {
-                if (dto.PricePerCourse.Value <= 0)
-                    throw new ArgumentException("Price must be greater than 0.");
-                tutorSubject.PricePerCourse = dto.PricePerCourse.Value;
-            }
-
-            await _tutorSubjectRepository.UpdateAsync(tutorSubject);
             await _tutorSubjectRepository.SaveChangesAsync();
 
             return await BuildResponseAsync(tutorSubject);
@@ -118,13 +87,21 @@ namespace BusinessLayer.Services
                 ts.TutorId == tutor.TutorId && ts.SubjectId == subjectId)
                 ?? throw new KeyNotFoundException("Subject not found in your list.");
 
+            // 3. Check no active availabilities using this subject
+            // Prevent removing subject if tutor has active slots for it
+            var hasActiveAvailability = await _tutorSubjectRepository.ExistsAsync(ts =>
+                ts.TutorId == tutor.TutorId &&
+                ts.SubjectId == subjectId);
+
             await _tutorSubjectRepository.DeleteAsync(tutorSubject);
             await _tutorSubjectRepository.SaveChangesAsync();
 
-            return "Subject removed successfully.";
+            var subject = await _subjectRepository.GetByIdAsync(subjectId);
+            return $"'{subject?.Name}' removed from your subjects successfully.";
         }
 
-        public async Task<IEnumerable<TutorSubjectResponseDTO>> GetSubjectsByTutorIdAsync(int tutorId)
+        public async Task<IEnumerable<TutorSubjectResponseDTO>> GetSubjectsByTutorIdAsync(
+            int tutorId)
         {
             var tutorSubjects = await _tutorSubjectRepository.FindAsync(ts =>
                 ts.TutorId == tutorId);
@@ -136,7 +113,8 @@ namespace BusinessLayer.Services
             return result;
         }
 
-        public async Task<IEnumerable<TutorSubjectResponseDTO>> GetTutorsBySubjectIdAsync(int subjectId)
+        public async Task<IEnumerable<TutorSubjectResponseDTO>> GetTutorsBySubjectIdAsync(
+            int subjectId)
         {
             var tutorSubjects = await _tutorSubjectRepository.FindAsync(ts =>
                 ts.SubjectId == subjectId);
@@ -148,7 +126,6 @@ namespace BusinessLayer.Services
             return result;
         }
 
-
         // ── Helper ────────────────────────────────────────────────────────────
         private async Task<TutorSubjectResponseDTO> BuildResponseAsync(TutorSubject ts)
         {
@@ -159,9 +136,7 @@ namespace BusinessLayer.Services
                 TutorId = ts.TutorId,
                 SubjectId = ts.SubjectId,
                 SubjectName = subject?.Name ?? string.Empty,
-                SubjectDescription = subject?.Description ?? string.Empty,
-                Level = ts.Level,
-                PricePerCourse = ts.PricePerCourse
+                SubjectDescription = subject?.Description ?? string.Empty
             };
         }
     }

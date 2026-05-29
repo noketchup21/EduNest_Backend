@@ -15,11 +15,9 @@ namespace DataAccessLayer.Entities
         public int SubmissionId { get; set; }
 
         public int HomeworkId { get; set; }
-
         public int StudentId { get; set; }
 
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
-
         public double TotalScore { get; set; }
 
         // Navigation properties

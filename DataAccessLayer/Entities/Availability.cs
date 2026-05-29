@@ -21,9 +21,25 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(20)]
         public string DayOfWeek { get; set; }
 
-        public TimeSpan StartTime { get; set; }
+        [Required, MaxLength(20)]
+        public string Mode { get; set; }
+        // Online / Offline
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
 
-        public TimeSpan EndTime { get; set; }
+        public DateTime StartCourseTime { get; set; }
+        public DateTime EndCourseTime { get; set; }
+
+        [Required, MaxLength(50)]
+        public string Level { get; set; }
+
+        public int Slot { get; set; }                // base slots per month
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PricePerSlot { get; set; }
+
+        [Required, MaxLength(20)]
+        public string Status { get; set; } // Active / Inactive / Full
 
         // Navigation properties
         [ForeignKey("TutorId")]
@@ -31,5 +47,8 @@ namespace DataAccessLayer.Entities
 
         [ForeignKey("SubjectId")]
         public virtual Subject Subject { get; set; }
+
+        public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+        public virtual ICollection<Material> Materials { get; set; } = new List<Material>();
     }
 }

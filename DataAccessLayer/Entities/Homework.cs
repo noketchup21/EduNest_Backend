@@ -14,7 +14,7 @@ namespace DataAccessLayer.Entities
         [Key]
         public int HomeworkId { get; set; }
 
-        public int ClassId { get; set; }
+        public int BookingId { get; set; }             // ← links to Booking
 
         [Required, MaxLength(255)]
         public string Title { get; set; }
@@ -22,16 +22,15 @@ namespace DataAccessLayer.Entities
         [MaxLength(2000)]
         public string Description { get; set; }
 
+        [MaxLength(500)]
+        public string Url { get; set; }
+
+        public DateTime DueDate { get; set; }
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
-        [MaxLength(50)]
-        public string HomeworkType { get; set; }
-
-        public DateTime? DueDate { get; set; }
-
         // Navigation properties
-        [ForeignKey("ClassId")]
-        public virtual Class Class { get; set; }
+        [ForeignKey("BookingId")]
+        public virtual Booking Booking { get; set; }
 
         public virtual ICollection<Submission> Submissions { get; set; } = new List<Submission>();
         public virtual ICollection<MultipleChoiceQuestion> MultipleChoiceQuestions { get; set; } = new List<MultipleChoiceQuestion>();

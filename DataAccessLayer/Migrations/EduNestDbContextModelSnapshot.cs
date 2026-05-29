@@ -22,6 +22,46 @@ namespace DataAccessLayer.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("DataAccessLayer.Entities.Attendance", b =>
+                {
+                    b.Property<int>("AttendanceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttendanceId"));
+
+                    b.Property<DateTime?>("AttendedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AttendanceId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("LessonId", "StudentId")
+                        .IsUnique();
+
+                    b.ToTable("Attendances");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Availability", b =>
                 {
                     b.Property<int>("AvailabilityId")
@@ -35,11 +75,38 @@ namespace DataAccessLayer.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time");
+                    b.Property<DateTime>("EndCourseTime")
+                        .HasColumnType("datetime2");
 
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time");
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("PricePerSlot")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Slot")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartCourseTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int?>("SubjectId")
                         .HasColumnType("int");
@@ -64,13 +131,17 @@ namespace DataAccessLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BookingId"));
 
+                    b.Property<int>("AvailabilityId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Mode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("PriceAtBooking")
                         .HasColumnType("decimal(18,2)");
@@ -83,65 +154,54 @@ namespace DataAccessLayer.Migrations
                     b.Property<int>("StudentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SubjectId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TutorId")
-                        .HasColumnType("int");
-
                     b.HasKey("BookingId");
+
+                    b.HasIndex("ParentId");
 
                     b.HasIndex("StudentId");
 
-                    b.HasIndex("SubjectId");
-
-                    b.HasIndex("TutorId", "StudentId", "Status");
+                    b.HasIndex("AvailabilityId", "StudentId", "Status");
 
                     b.ToTable("Booking");
                 });
 
-            modelBuilder.Entity("DataAccessLayer.Entities.Class", b =>
+            modelBuilder.Entity("DataAccessLayer.Entities.Conversation", b =>
                 {
-                    b.Property<int>("ClassId")
+                    b.Property<int>("ConversationId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClassId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ConversationId"));
 
-                    b.Property<int>("SubjectId")
-                        .HasColumnType("int");
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
-                    b.Property<int>("TotalStudent")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TutorId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ClassId");
-
-                    b.HasIndex("SubjectId");
-
-                    b.HasIndex("TutorId");
-
-                    b.ToTable("Class");
-                });
-
-            modelBuilder.Entity("DataAccessLayer.Entities.ClassStudent", b =>
-                {
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ClassId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("JoinedAt")
+                    b.Property<DateTime>("LastMessageAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("StudentId", "ClassId");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("ClassId");
+                    b.HasKey("ConversationId");
 
-                    b.ToTable("ClassStudent");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Conversation");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.ConversationUser", b =>
+                {
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ConversationId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ConversationUser");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Essay", b =>
@@ -151,11 +211,6 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EssayId"));
-
-                    b.Property<string>("AnswerText")
-                        .IsRequired()
-                        .HasMaxLength(5000)
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("HomeworkId")
                         .HasColumnType("int");
@@ -211,6 +266,33 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("EssayAnswer");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.FavoriteTutor", b =>
+                {
+                    b.Property<int>("FavoriteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FavoriteId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TutorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("FavoriteId");
+
+                    b.HasIndex("TutorId");
+
+                    b.HasIndex("ParentId", "TutorId")
+                        .IsUnique();
+
+                    b.ToTable("FavoriteTutor");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Homework", b =>
                 {
                     b.Property<int>("HomeworkId")
@@ -219,7 +301,7 @@ namespace DataAccessLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HomeworkId"));
 
-                    b.Property<int>("ClassId")
+                    b.Property<int>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -227,13 +309,8 @@ namespace DataAccessLayer.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime?>("DueDate")
+                    b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("HomeworkType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -243,9 +320,14 @@ namespace DataAccessLayer.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.HasKey("HomeworkId");
 
-                    b.HasIndex("ClassId");
+                    b.HasIndex("BookingId");
 
                     b.ToTable("Homework");
                 });
@@ -292,8 +374,11 @@ namespace DataAccessLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MaterialId"));
 
-                    b.Property<int>("ClassId")
+                    b.Property<int>("AvailabilityId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -310,14 +395,48 @@ namespace DataAccessLayer.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("MaterialId");
 
-                    b.HasIndex("ClassId");
+                    b.HasIndex("AvailabilityId");
 
                     b.ToTable("Material");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Message", b =>
+                {
+                    b.Property<int>("MessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageId"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("MessageId");
+
+                    b.HasIndex("ConversationId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Message");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.MultipleChoiceQuestion", b =>
@@ -328,35 +447,10 @@ namespace DataAccessLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MultipleChoiceQuestionId"));
 
-                    b.Property<string>("CorrectOption")
-                        .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
-
                     b.Property<int>("HomeworkId")
                         .HasColumnType("int");
 
-                    b.Property<string>("OptionA")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("OptionB")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("OptionC")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("OptionD")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<double>("Points")
+                    b.Property<double>("Point")
                         .HasColumnType("float");
 
                     b.Property<string>("QuestionText")
@@ -373,29 +467,31 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.MultipleChoiceQuestionAnswer", b =>
                 {
-                    b.Property<int>("MultipleChoiceQuestionsAnswerId")
+                    b.Property<int>("MultipleChoiceQuestionAnswerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MultipleChoiceQuestionsAnswerId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MultipleChoiceQuestionAnswerId"));
 
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("bit");
+                    b.Property<int?>("MultipleChoiceQuestionId")
+                        .HasColumnType("int");
 
-                    b.Property<int>("MultipleChoiceQuestionId")
+                    b.Property<int>("QuestionOptionId")
                         .HasColumnType("int");
 
                     b.Property<string>("SelectedOption")
                         .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int>("SubmissionId")
                         .HasColumnType("int");
 
-                    b.HasKey("MultipleChoiceQuestionsAnswerId");
+                    b.HasKey("MultipleChoiceQuestionAnswerId");
 
                     b.HasIndex("MultipleChoiceQuestionId");
+
+                    b.HasIndex("QuestionOptionId");
 
                     b.HasIndex("SubmissionId");
 
@@ -434,30 +530,66 @@ namespace DataAccessLayer.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentId"));
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("BookingId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Method")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("PaymentId");
 
                     b.HasIndex("BookingId");
 
                     b.ToTable("Payment");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Payout", b =>
+                {
+                    b.Property<int>("PayoutId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PayoutId"));
+
+                    b.Property<string>("Amount")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("CreatedAt_Decimal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TutorId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WalletTransactionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PayoutId");
+
+                    b.HasIndex("TutorId");
+
+                    b.HasIndex("WalletTransactionId")
+                        .IsUnique()
+                        .HasFilter("[WalletTransactionId] IS NOT NULL");
+
+                    b.ToTable("Payouts");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.ProgressReport", b =>
@@ -496,6 +628,32 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("ProgressReport");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.QuestionOption", b =>
+                {
+                    b.Property<int>("QuestionOptionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("QuestionOptionId"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MultipleChoiceQuestionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("QuestionOptionId");
+
+                    b.HasIndex("MultipleChoiceQuestionId");
+
+                    b.ToTable("QuestionOption");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Review", b =>
                 {
                     b.Property<int>("ReviewId")
@@ -515,8 +673,8 @@ namespace DataAccessLayer.Migrations
                     b.Property<int?>("ParentId")
                         .HasColumnType("int");
 
-                    b.Property<float>("Rating")
-                        .HasColumnType("real");
+                    b.Property<decimal>("Rating")
+                        .HasColumnType("decimal(3,2)");
 
                     b.Property<int>("TutorId")
                         .HasColumnType("int");
@@ -620,6 +778,25 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("Submission");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.Tier", b =>
+                {
+                    b.Property<int>("TierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TierId"));
+
+                    b.Property<int>("CurrentStreak")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Rate")
+                        .HasColumnType("int");
+
+                    b.HasKey("TierId");
+
+                    b.ToTable("Tier");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Tutor", b =>
                 {
                     b.Property<int>("TutorId")
@@ -642,15 +819,54 @@ namespace DataAccessLayer.Migrations
                     b.Property<decimal>("Revenue")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("TierId")
+                        .HasColumnType("int");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("TutorId");
 
+                    b.HasIndex("TierId");
+
                     b.HasIndex("UserId")
                         .IsUnique();
 
                     b.ToTable("Tutor");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.TutorBankAccount", b =>
+                {
+                    b.Property<int>("TutorBankAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TutorBankAccountId"));
+
+                    b.Property<string>("AccountHolderName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("TutorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TutorBankAccountId");
+
+                    b.HasIndex("TutorId")
+                        .IsUnique();
+
+                    b.ToTable("TutorBankAccounts");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.TutorSubject", b =>
@@ -660,14 +876,6 @@ namespace DataAccessLayer.Migrations
 
                     b.Property<int>("TutorId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Level")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("PricePerCourse")
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("SubjectId", "TutorId");
 
@@ -738,12 +946,90 @@ namespace DataAccessLayer.Migrations
                     b.ToTable("User");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.Wallet", b =>
+                {
+                    b.Property<int>("WalletId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WalletId"));
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PendingBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TutorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WalletId");
+
+                    b.HasIndex("TutorId")
+                        .IsUnique();
+
+                    b.ToTable("Wallet");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.WalletTransaction", b =>
+                {
+                    b.Property<int>("WalletTransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WalletTransactionId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("WalletId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WalletTransactionId");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("WalletTransaction");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Attendance", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Lesson", "Lesson")
+                        .WithMany("Attendances")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataAccessLayer.Entities.Student", "Student")
+                        .WithMany("Attendances")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Availability", b =>
                 {
                     b.HasOne("DataAccessLayer.Entities.Subject", "Subject")
                         .WithMany("Availabilities")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
                         .WithMany("Availabilities")
@@ -758,67 +1044,59 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.Booking", b =>
                 {
+                    b.HasOne("DataAccessLayer.Entities.Availability", "Availability")
+                        .WithMany("Bookings")
+                        .HasForeignKey("AvailabilityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DataAccessLayer.Entities.Parent", "Parent")
+                        .WithMany("Bookings")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("DataAccessLayer.Entities.Student", "Student")
                         .WithMany("Bookings")
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DataAccessLayer.Entities.Subject", "Subject")
-                        .WithMany("Bookings")
-                        .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("Availability");
 
-                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
-                        .WithMany("Bookings")
-                        .HasForeignKey("TutorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                    b.Navigation("Parent");
 
                     b.Navigation("Student");
-
-                    b.Navigation("Subject");
-
-                    b.Navigation("Tutor");
                 });
 
-            modelBuilder.Entity("DataAccessLayer.Entities.Class", b =>
+            modelBuilder.Entity("DataAccessLayer.Entities.Conversation", b =>
                 {
-                    b.HasOne("DataAccessLayer.Entities.Subject", "Subject")
-                        .WithMany("Classes")
-                        .HasForeignKey("SubjectId")
+                    b.HasOne("DataAccessLayer.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
-                        .WithMany("Classes")
-                        .HasForeignKey("TutorId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Subject");
-
-                    b.Navigation("Tutor");
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("DataAccessLayer.Entities.ClassStudent", b =>
+            modelBuilder.Entity("DataAccessLayer.Entities.ConversationUser", b =>
                 {
-                    b.HasOne("DataAccessLayer.Entities.Class", "Class")
-                        .WithMany("ClassStudents")
-                        .HasForeignKey("ClassId")
+                    b.HasOne("DataAccessLayer.Entities.Conversation", "Conversation")
+                        .WithMany("ConversationUsers")
+                        .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DataAccessLayer.Entities.Student", "Student")
-                        .WithMany("ClassStudents")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("DataAccessLayer.Entities.User", "User")
+                        .WithMany("ConversationUsers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Class");
+                    b.Navigation("Conversation");
 
-                    b.Navigation("Student");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Essay", b =>
@@ -851,15 +1129,34 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Submission");
                 });
 
-            modelBuilder.Entity("DataAccessLayer.Entities.Homework", b =>
+            modelBuilder.Entity("DataAccessLayer.Entities.FavoriteTutor", b =>
                 {
-                    b.HasOne("DataAccessLayer.Entities.Class", "Class")
-                        .WithMany("Homeworks")
-                        .HasForeignKey("ClassId")
+                    b.HasOne("DataAccessLayer.Entities.Parent", "Parent")
+                        .WithMany("FavoriteTutors")
+                        .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Class");
+                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
+                        .WithMany("FavoriteTutors")
+                        .HasForeignKey("TutorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Parent");
+
+                    b.Navigation("Tutor");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Homework", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Booking", "Booking")
+                        .WithMany("Homeworks")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Lesson", b =>
@@ -875,13 +1172,32 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.Material", b =>
                 {
-                    b.HasOne("DataAccessLayer.Entities.Class", "Class")
+                    b.HasOne("DataAccessLayer.Entities.Availability", "Availability")
                         .WithMany("Materials")
-                        .HasForeignKey("ClassId")
+                        .HasForeignKey("AvailabilityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Class");
+                    b.Navigation("Availability");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Message", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataAccessLayer.Entities.User", "User")
+                        .WithMany("Messages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.MultipleChoiceQuestion", b =>
@@ -897,9 +1213,13 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.MultipleChoiceQuestionAnswer", b =>
                 {
-                    b.HasOne("DataAccessLayer.Entities.MultipleChoiceQuestion", "MultipleChoiceQuestion")
+                    b.HasOne("DataAccessLayer.Entities.MultipleChoiceQuestion", null)
                         .WithMany("Answers")
-                        .HasForeignKey("MultipleChoiceQuestionId")
+                        .HasForeignKey("MultipleChoiceQuestionId");
+
+                    b.HasOne("DataAccessLayer.Entities.QuestionOption", "QuestionOption")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionOptionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -909,7 +1229,7 @@ namespace DataAccessLayer.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("MultipleChoiceQuestion");
+                    b.Navigation("QuestionOption");
 
                     b.Navigation("Submission");
                 });
@@ -934,6 +1254,24 @@ namespace DataAccessLayer.Migrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Payout", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
+                        .WithMany("Payouts")
+                        .HasForeignKey("TutorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DataAccessLayer.Entities.WalletTransaction", "WalletTransaction")
+                        .WithOne("Payout")
+                        .HasForeignKey("DataAccessLayer.Entities.Payout", "WalletTransactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Tutor");
+
+                    b.Navigation("WalletTransaction");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.ProgressReport", b =>
@@ -961,6 +1299,17 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Student");
 
                     b.Navigation("Tutor");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.QuestionOption", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.MultipleChoiceQuestion", "MultipleChoiceQuestion")
+                        .WithMany("QuestionOptions")
+                        .HasForeignKey("MultipleChoiceQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MultipleChoiceQuestion");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Review", b =>
@@ -1028,13 +1377,31 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.Tutor", b =>
                 {
+                    b.HasOne("DataAccessLayer.Entities.Tier", "Tier")
+                        .WithMany("Tutors")
+                        .HasForeignKey("TierId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("DataAccessLayer.Entities.User", "User")
                         .WithOne("Tutor")
                         .HasForeignKey("DataAccessLayer.Entities.Tutor", "UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Tier");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.TutorBankAccount", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
+                        .WithOne("BankAccount")
+                        .HasForeignKey("DataAccessLayer.Entities.TutorBankAccount", "TutorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tutor");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.TutorSubject", b =>
@@ -1056,8 +1423,39 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Tutor");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.Wallet", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Tutor", "Tutor")
+                        .WithOne("Wallet")
+                        .HasForeignKey("DataAccessLayer.Entities.Wallet", "TutorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tutor");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.WalletTransaction", b =>
+                {
+                    b.HasOne("DataAccessLayer.Entities.Wallet", "Wallet")
+                        .WithMany("WalletTransactions")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Availability", b =>
+                {
+                    b.Navigation("Bookings");
+
+                    b.Navigation("Materials");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Booking", b =>
                 {
+                    b.Navigation("Homeworks");
+
                     b.Navigation("Lessons");
 
                     b.Navigation("Payments");
@@ -1065,13 +1463,11 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("Reviews");
                 });
 
-            modelBuilder.Entity("DataAccessLayer.Entities.Class", b =>
+            modelBuilder.Entity("DataAccessLayer.Entities.Conversation", b =>
                 {
-                    b.Navigation("ClassStudents");
+                    b.Navigation("ConversationUsers");
 
-                    b.Navigation("Homeworks");
-
-                    b.Navigation("Materials");
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Essay", b =>
@@ -1090,26 +1486,39 @@ namespace DataAccessLayer.Migrations
 
             modelBuilder.Entity("DataAccessLayer.Entities.Lesson", b =>
                 {
+                    b.Navigation("Attendances");
+
                     b.Navigation("ProgressReports");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.MultipleChoiceQuestion", b =>
                 {
                     b.Navigation("Answers");
+
+                    b.Navigation("QuestionOptions");
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.Parent", b =>
                 {
+                    b.Navigation("Bookings");
+
+                    b.Navigation("FavoriteTutors");
+
                     b.Navigation("Reviews");
 
                     b.Navigation("Students");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.QuestionOption", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Student", b =>
                 {
-                    b.Navigation("Bookings");
+                    b.Navigation("Attendances");
 
-                    b.Navigation("ClassStudents");
+                    b.Navigation("Bookings");
 
                     b.Navigation("ProgressReports");
 
@@ -1119,10 +1528,6 @@ namespace DataAccessLayer.Migrations
             modelBuilder.Entity("DataAccessLayer.Entities.Subject", b =>
                 {
                     b.Navigation("Availabilities");
-
-                    b.Navigation("Bookings");
-
-                    b.Navigation("Classes");
 
                     b.Navigation("TutorSubjects");
                 });
@@ -1134,23 +1539,38 @@ namespace DataAccessLayer.Migrations
                     b.Navigation("MultipleChoiceQuestionAnswers");
                 });
 
+            modelBuilder.Entity("DataAccessLayer.Entities.Tier", b =>
+                {
+                    b.Navigation("Tutors");
+                });
+
             modelBuilder.Entity("DataAccessLayer.Entities.Tutor", b =>
                 {
                     b.Navigation("Availabilities");
 
-                    b.Navigation("Bookings");
+                    b.Navigation("BankAccount")
+                        .IsRequired();
 
-                    b.Navigation("Classes");
+                    b.Navigation("FavoriteTutors");
+
+                    b.Navigation("Payouts");
 
                     b.Navigation("ProgressReports");
 
                     b.Navigation("Reviews");
 
                     b.Navigation("TutorSubjects");
+
+                    b.Navigation("Wallet")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("DataAccessLayer.Entities.User", b =>
                 {
+                    b.Navigation("ConversationUsers");
+
+                    b.Navigation("Messages");
+
                     b.Navigation("Parent")
                         .IsRequired();
 
@@ -1158,6 +1578,17 @@ namespace DataAccessLayer.Migrations
                         .IsRequired();
 
                     b.Navigation("Tutor")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.Wallet", b =>
+                {
+                    b.Navigation("WalletTransactions");
+                });
+
+            modelBuilder.Entity("DataAccessLayer.Entities.WalletTransaction", b =>
+                {
+                    b.Navigation("Payout")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618
