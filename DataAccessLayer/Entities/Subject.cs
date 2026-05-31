@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("Subject")]
+    [Table("Subjects")]
     public class Subject
     {
         [Key]

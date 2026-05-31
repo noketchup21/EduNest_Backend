@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("WalletTransaction")]
+    [Table("WalletTransactions")]
     public class WalletTransaction
     {
         [Key]

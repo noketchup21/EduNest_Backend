@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
+    [Table("TutorBankAccounts")]
     public class TutorBankAccount
     {
         [Key]

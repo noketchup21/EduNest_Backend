@@ -382,6 +382,29 @@ namespace DataAccessLayer.Entities
 
             modelBuilder.Entity<Availability>()
                 .HasIndex(a => new { a.TutorId, a.DayOfWeek });
+
+            // ── PostgreSQL lowercase naming ───────────────────────────────────  ← ADD HERE
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                // Lowercase table names
+                entity.SetTableName(entity.GetTableName()?.ToLower());
+
+                // Lowercase column names
+                foreach (var property in entity.GetProperties())
+                    property.SetColumnName(property.GetColumnName().ToLower());
+
+                // Lowercase key names
+                foreach (var key in entity.GetKeys())
+                    key.SetName(key.GetName()?.ToLower());
+
+                // Lowercase foreign key names
+                foreach (var fk in entity.GetForeignKeys())
+                    fk.SetConstraintName(fk.GetConstraintName()?.ToLower());
+
+                // Lowercase index names
+                foreach (var index in entity.GetIndexes())
+                    index.SetDatabaseName(index.GetDatabaseName()?.ToLower());
+            }
         }
     }
 }
