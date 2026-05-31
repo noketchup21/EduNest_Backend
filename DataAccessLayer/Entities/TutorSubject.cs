@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("TutorSubject")]
+    [Table("TutorSubjects")]
     public class TutorSubject
     {
         // Composite PK configured via Fluent API in DbContext

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("Material")]
+    [Table("Materials")]
     public class Material
     {
         [Key]

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("ConversationUser")]
+    [Table("ConversationUsers")]
     public class ConversationUser
     {
         // Composite PK configured via Fluent API

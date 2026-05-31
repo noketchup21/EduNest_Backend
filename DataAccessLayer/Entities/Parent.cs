@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("Parent")]
+    [Table("Parents")]
     public class Parent
     {
         [Key]

@@ -10,7 +10,7 @@ using System.Timers;
 
 namespace DataAccessLayer.Entities
 {
-    [Table("Tutor")]
+    [Table("Tutors")]
     public class Tutor
     {
         [Key]
