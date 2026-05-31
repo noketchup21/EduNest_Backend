@@ -9,10 +9,10 @@ namespace BusinessLayer.Settings
     public class EmailSetting
     {
         public const string SectionName = "EmailSetting";
-        public string Host { get; set; }
-        public int Port { get; set; }
-        public string SenderEmail { get; set; }
         public string SenderName { get; set; }
-        public string Password { get; set; }
+
+        // Google Apps Script
+        public string GoogleScriptUrl { get; set; }
+        public string GoogleScriptSecretKey { get; set; }
     }
 }

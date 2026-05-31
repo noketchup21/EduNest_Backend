@@ -2,39 +2,58 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using BusinessLayer.IServices;
 using BusinessLayer.Settings;
 using BusinessLayer.Templates;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.Extensions.Options;
-using MimeKit;
 
 namespace BusinessLayer.Services
 {
     public class EmailService : IEmailService
     {
         private readonly EmailSetting _emailSettings;
+        private readonly HttpClient _httpClient;
 
         public EmailService(IOptions<EmailSetting> emailSettings)
         {
             _emailSettings = emailSettings.Value;
+            _httpClient = new HttpClient();
         }
 
         public async Task SendEmailAsync(string toEmail, string subject, string body)
         {
-            var email = new MimeMessage();
-            email.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail));
-            email.To.Add(MailboxAddress.Parse(toEmail));
-            email.Subject = subject;
-            email.Body = new TextPart(MimeKit.Text.TextFormat.Html) { Text = body };
+            if (string.IsNullOrWhiteSpace(_emailSettings.GoogleScriptUrl))
+                throw new InvalidOperationException("Google Script URL is not configured.");
 
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(_emailSettings.Host, _emailSettings.Port, SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(_emailSettings.SenderEmail, _emailSettings.Password);
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
+            if (string.IsNullOrWhiteSpace(_emailSettings.GoogleScriptSecretKey))
+                throw new InvalidOperationException("Google Script secret key is not configured.");
+
+            var payload = new
+            {
+                secretKey = _emailSettings.GoogleScriptSecretKey,
+                to = toEmail,
+                subject = subject,
+                body = body,
+                senderName = _emailSettings.SenderName
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync(_emailSettings.GoogleScriptUrl, content);
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            // Parse response
+            var result = JsonSerializer.Deserialize<JsonElement>(responseBody);
+            if (!result.GetProperty("success").GetBoolean())
+            {
+                var error = result.TryGetProperty("error", out var e)
+                    ? e.GetString()
+                    : "Unknown error";
+                throw new Exception($"Email sending failed: {error}");
+            }
         }
 
         public async Task SendVerificationCodeAsync(string toEmail, string name, string code)
