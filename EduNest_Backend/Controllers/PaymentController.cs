@@ -57,6 +57,13 @@ namespace EduNest_Backend.Controllers
             }
         }
 
+        [Authorize]
+        [HttpPost("booking/{bookingId:int}/sync")]
+        public async Task<ActionResult<CreatePaymentResponse>> SyncPayment(int bookingId)
+        {
+            return Ok(await _paymentService.SyncPayOsPaymentAsync(CurrentUserId(), bookingId));
+        }
+
         private int CurrentUserId()
         {
             var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)

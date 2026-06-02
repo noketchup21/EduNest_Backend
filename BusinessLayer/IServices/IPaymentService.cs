@@ -11,5 +11,7 @@ namespace BusinessLayer.IServices
     {
         Task<CreatePaymentResponse> CreatePayOsPaymentAsync(int userId, int bookingId);
         Task HandlePayOsWebhookAsync(PayOsWebhookRequest request);
+        Task<CreatePaymentResponse> SyncPayOsPaymentAsync(int userId, int bookingId);
+        Task<string> DebugPayOsStatusAsync(long orderCode);
     }
 }
