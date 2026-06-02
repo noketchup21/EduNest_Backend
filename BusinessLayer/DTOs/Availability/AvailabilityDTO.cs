@@ -24,6 +24,7 @@ namespace BusinessLayer.DTOs.Availability
         public string Status { get; set; } = string.Empty;
         public string Mode { get; set; } = string.Empty;
         public string Level { get; set; } = string.Empty;
+        public int TutorUserId { get; set; }
     }
 
     public sealed class CreateAvailabilityRequest

@@ -22,6 +22,7 @@ namespace BusinessLayer.Services
         public async Task<List<AvailabilityResponse>> GetAllAsync()
         {
             var data = await _db.Availabilities
+                .Include(a => a.Tutor)
                 .Include(a => a.Bookings)
                 .Where(a => a.Status == "Active")
                 .OrderBy(a => a.StartCourseTime)
@@ -33,6 +34,7 @@ namespace BusinessLayer.Services
         public async Task<List<AvailabilityResponse>> GetByTutorAsync(int tutorId)
         {
             var data = await _db.Availabilities
+                .Include(a => a.Tutor)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutorId && a.Status == "Active")
                 .OrderBy(a => a.StartCourseTime)
@@ -46,6 +48,7 @@ namespace BusinessLayer.Services
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
 
             var data = await _db.Availabilities
+                .Include(a => a.Tutor)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutor.TutorId)
                 .OrderByDescending(a => a.StartCourseTime)
@@ -190,6 +193,7 @@ namespace BusinessLayer.Services
             {
                 AvailabilityId = a.AvailabilityId,
                 TutorId = a.TutorId,
+                TutorUserId = a.Tutor?.UserId ?? 0,
                 SubjectId = a.SubjectId,
                 DayOfWeek = a.DayOfWeek,
                 StartCourseTime = a.StartCourseTime,
