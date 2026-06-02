@@ -3,6 +3,7 @@ using System;
 using DataAccessLayer.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataAccessLayer.Migrations
 {
     [DbContext(typeof(EduNestDbContext))]
-    partial class EduNestDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601130617_ChangeAvailabilityTimeToTimeSpan")]
+    partial class ChangeAvailabilityTimeToTimeSpan
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -92,7 +95,7 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("endcoursetime");
 
                     b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time without time zone")
+                        .HasColumnType("interval")
                         .HasColumnName("endtime");
 
                     b.Property<string>("Level")
@@ -120,7 +123,7 @@ namespace DataAccessLayer.Migrations
                         .HasColumnName("startcoursetime");
 
                     b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time without time zone")
+                        .HasColumnType("interval")
                         .HasColumnName("starttime");
 
                     b.Property<string>("Status")

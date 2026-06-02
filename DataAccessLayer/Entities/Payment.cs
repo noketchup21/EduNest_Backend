@@ -20,9 +20,25 @@ namespace DataAccessLayer.Entities
         public decimal TotalPrice { get; set; }
 
         [Required, MaxLength(50)]
-        public string Status { get; set; }   // Pending / Success / Failed / Refunded
+        public string Status { get; set; } = "Pending"; // Pending / Success / Failed / Refunded
+
+        [Required, MaxLength(50)]
+        public string Provider { get; set; } = "PayOS"; // PayOS / VietQR
+
+        public long ProviderOrderCode { get; set; }
+
+        [MaxLength(100)]
+        public string Description { get; set; } = string.Empty;
+
+        [MaxLength(2000)]
+        public string? CheckoutUrl { get; set; }
+
+        [MaxLength(4000)]
+        public string? QrCode { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? PaidAt { get; set; }
 
         // Navigation properties
         [ForeignKey("BookingId")]

@@ -53,6 +53,9 @@ builder.Services.AddAuthorization();
 builder.Services.Configure<EmailSetting>(
     builder.Configuration.GetSection(EmailSetting.SectionName));
 
+builder.Services.Configure<PayOSSetting>(
+    builder.Configuration.GetSection("PayOs"));
+
 #region ADDSCOPE
 //Repo
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -61,6 +64,18 @@ builder.Services.AddScoped<ITutorRepository, TutorRepository>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<ITutorSubjectRepository, TutorSubjectRepository>();
 builder.Services.AddScoped<ISubjectRepository, SubjectRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+builder.Services.AddScoped<IAvailabilityRepository, AvailabilityRepository>();
+builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+builder.Services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
+builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
+
+builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+builder.Services.AddScoped<IConversationUserRepository, ConversationUserRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 //Service
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -70,7 +85,16 @@ builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddScoped<ITutorService, TutorService>();
 builder.Services.AddScoped<ITutorSubjectService, TutorSubjectService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<ILessonService, LessonService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IPayoutService, PayoutService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 #endregion
+
+builder.Services.AddHttpClient();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
