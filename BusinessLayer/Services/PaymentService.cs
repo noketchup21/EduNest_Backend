@@ -87,10 +87,10 @@ namespace BusinessLayer.Services
         public async Task HandlePayOsWebhookAsync(PayOsWebhookRequest request)
         {
             if (request.Data == null)
-                throw new InvalidOperationException("Webhook data is missing.");
+                return;
 
             if (!VerifyPayOsWebhookSignature(request))
-                throw new UnauthorizedAccessException("Invalid payOS signature.");
+                return;
 
             var payment = await _db.Payments
                 .Include(p => p.Booking)
