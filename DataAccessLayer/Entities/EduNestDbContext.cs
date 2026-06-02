@@ -136,6 +136,14 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(a => a.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Availability>()
+    .Property(a => a.StartTime)
+    .HasColumnType("time without time zone");
+
+            modelBuilder.Entity<Availability>()
+                .Property(a => a.EndTime)
+                .HasColumnType("time without time zone");
+
             // ── Booking ───────────────────────────────────────────────────────
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Availability)

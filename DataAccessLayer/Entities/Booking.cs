@@ -15,8 +15,11 @@ namespace DataAccessLayer.Entities
         public int BookingId { get; set; }
 
         public int AvailabilityId { get; set; }
-        public int ParentId { get; set; }
-        public int StudentId { get; set; }
+
+        // MVP direct-user booking: parent/student are no longer required.
+        public int? UserId { get; set; }
+        public int? ParentId { get; set; }
+        public int? StudentId { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal PriceAtBooking { get; set; }
@@ -32,6 +35,9 @@ namespace DataAccessLayer.Entities
         // Navigation properties
         [ForeignKey("AvailabilityId")]
         public virtual Availability Availability { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
 
         [ForeignKey("ParentId")]
         public virtual Parent Parent { get; set; }

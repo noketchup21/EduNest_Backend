@@ -1,0 +1,30 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BusinessLayer.DTOs.Booking
+{
+    public sealed class CreateBookingRequest
+    {
+        [Required]
+        public int AvailabilityId { get; set; }
+
+        // Optional note from mobile app. No parent/student required in MVP flow.
+        public string? Note { get; set; }
+    }
+
+    public sealed class BookingResponse
+    {
+        public int BookingId { get; set; }
+        public int AvailabilityId { get; set; }
+        public int UserId { get; set; }
+        public int TutorId { get; set; }
+        public int? SubjectId { get; set; }
+        public decimal PriceAtBooking { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+}

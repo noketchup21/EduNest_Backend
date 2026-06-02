@@ -17,12 +17,10 @@ namespace DataAccessLayer.Entities
         public int TutorId { get; set; }
         public int? WalletTransactionId { get; set; }  // nullable
 
-        [Required, MaxLength(50)]
-        public string Amount { get; set; }             // stored as string per ERD
-
         [Column(TypeName = "decimal(18,2)")]
-        public decimal CreatedAt_Decimal { get; set; } // stored as decimal per ERD (mapped as amount value)
+        public decimal Amount { get; set; }
 
+        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
         public DateTime? PaidAt { get; set; }
 
         [Required, MaxLength(50)]
