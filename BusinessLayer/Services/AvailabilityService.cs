@@ -76,7 +76,11 @@ namespace BusinessLayer.Services
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
                 Mode = request.Mode,
-                Slot = request.Slot,
+                Slot = CalculateSlotCount(
+    request.StartCourseTime,
+    request.EndCourseTime,
+    request.DayOfWeek
+),
                 Level = request.Level,
                 PricePerSlot = request.PricePerSlot,
                 Status = "Active"
@@ -129,8 +133,6 @@ namespace BusinessLayer.Services
             if (request.EndTime.HasValue)
                 availability.EndTime = request.EndTime.Value;
 
-            if (request.Slot.HasValue)
-                availability.Slot = request.Slot.Value;
 
             if (request.PricePerSlot.HasValue)
                 availability.PricePerSlot = request.PricePerSlot.Value;
@@ -143,6 +145,12 @@ namespace BusinessLayer.Services
 
             if (availability.StartTime >= availability.EndTime)
                 throw new InvalidOperationException("Start time must be before end time.");
+
+            availability.Slot = CalculateSlotCount(
+    availability.StartCourseTime,
+    availability.EndCourseTime,
+    availability.DayOfWeek
+);
 
             await _db.SaveChangesAsync();
 
@@ -195,6 +203,36 @@ namespace BusinessLayer.Services
                     Mode = a.Mode,
                     Level = a.Level
             };
+        }
+
+        private static int CalculateSlotCount(
+    DateTime startCourseTime,
+    DateTime endCourseTime,
+    string dayOfWeek)
+        {
+            if (!Enum.TryParse<DayOfWeek>(dayOfWeek, true, out var targetDay))
+                throw new InvalidOperationException("Invalid day of week.");
+
+            var startDate = startCourseTime.Date;
+            var endDate = endCourseTime.Date;
+
+            if (startDate > endDate)
+                throw new InvalidOperationException("Start course time must be before end course time.");
+
+            var count = 0;
+
+            for (var date = startDate; date <= endDate; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek == targetDay)
+                {
+                    count++;
+                }
+            }
+
+            if (count <= 0)
+                throw new InvalidOperationException("No lesson slot found in this course date range.");
+
+            return count;
         }
     }
 }

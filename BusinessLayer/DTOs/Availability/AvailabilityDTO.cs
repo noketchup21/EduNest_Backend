@@ -20,6 +20,7 @@ namespace BusinessLayer.DTOs.Availability
         public int Slot { get; set; }
         public int RemainingSlot { get; set; }
         public decimal PricePerSlot { get; set; }
+        public decimal TotalCoursePrice { get; set; }   
         public string Status { get; set; } = string.Empty;
         public string Mode { get; set; } = string.Empty;
         public string Level { get; set; } = string.Empty;
@@ -49,7 +50,6 @@ namespace BusinessLayer.DTOs.Availability
         [Required]
         public string Level { get; set; } = string.Empty;
 
-        [Range(1, 100)]
         public int Slot { get; set; }
 
         [Range(1000, double.MaxValue)]
@@ -64,7 +64,6 @@ namespace BusinessLayer.DTOs.Availability
         public DateTime? EndCourseTime { get; set; }
         public TimeSpan? StartTime { get; set; }
         public TimeSpan? EndTime { get; set; }
-        public int? Slot { get; set; }
         public decimal? PricePerSlot { get; set; }
         public string? Status { get; set; }
         public string? Mode { get; set; }

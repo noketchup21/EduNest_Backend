@@ -30,13 +30,13 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(a => a.AvailabilityId == request.AvailabilityId && a.Status == "Active")
                 ?? throw new KeyNotFoundException("Availability not found or inactive.");
 
-            var activeBookings = await _db.Bookings.CountAsync(b =>
-                b.AvailabilityId == availability.AvailabilityId &&
-                !b.IsDeleted &&
-                (b.Status == "Pending" || b.Status == "Confirmed"));
+            //var activeBookings = await _db.Bookings.CountAsync(b =>
+            //    b.AvailabilityId == availability.AvailabilityId &&
+            //    !b.IsDeleted &&
+            //    (b.Status == "Pending" || b.Status == "Confirmed"));
 
-            if (availability.Slot > 0 && activeBookings >= availability.Slot)
-                throw new InvalidOperationException("This course is already full.");
+            //if (availability.Slot > 0 && activeBookings >= availability.Slot)
+            //    throw new InvalidOperationException("This course is already full.");
 
             var price = availability.PricePerSlot * Math.Max(1, availability.Slot);
 
