@@ -25,6 +25,11 @@ namespace BusinessLayer.Services
             var query = _db.Lessons
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
                 .AsQueryable();
 
             query = tutor != null
@@ -72,7 +77,10 @@ namespace BusinessLayer.Services
                 lesson.Booking.AvailabilityId,
                 lesson.ScheduleTime);
 
-            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+            return ToLessonDetailResponse(
+                lesson,
+                lesson.Booking.Availability,
+                groupLessons);
         }
 
         public async Task<LessonDetailResponse> SetMeetingLinkAsync(
@@ -96,7 +104,10 @@ namespace BusinessLayer.Services
 
             await _db.SaveChangesAsync();
 
-            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+            return ToLessonDetailResponse(
+                lesson,
+                lesson.Booking.Availability,
+                groupLessons);
         }
 
         public async Task<LessonResponse> MarkAttendanceAsync(
@@ -107,6 +118,11 @@ namespace BusinessLayer.Services
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
                 .Include(l => l.Attendances)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId)
                 ?? throw new KeyNotFoundException("Lesson not found.");
@@ -157,6 +173,11 @@ namespace BusinessLayer.Services
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId)
                 ?? throw new KeyNotFoundException("Lesson not found.");
 
@@ -238,7 +259,10 @@ namespace BusinessLayer.Services
 
             await _db.SaveChangesAsync();
 
-            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+            return ToLessonDetailResponse(
+                lesson,
+                lesson.Booking.Availability,
+                groupLessons);
         }
 
         private async Task<Booking> GetTutorBookingAsync(int tutorUserId, int bookingId)
@@ -247,6 +271,10 @@ namespace BusinessLayer.Services
 
             return await _db.Bookings
                 .Include(b => b.Availability)
+                    .ThenInclude(a => a.Tutor)
+                        .ThenInclude(t => t.User)
+                .Include(b => b.Availability)
+                    .ThenInclude(a => a.Subject)
                 .FirstOrDefaultAsync(b =>
                     b.BookingId == bookingId &&
                     b.Availability.TutorId == tutor.TutorId &&
@@ -260,9 +288,14 @@ namespace BusinessLayer.Services
 
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
-                    .ThenInclude(b => b.Availability)
-                .Include(l => l.Booking)
                     .ThenInclude(b => b.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
                 .Include(l => l.Attendances)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId)
                 ?? throw new KeyNotFoundException("Lesson not found.");
@@ -282,6 +315,11 @@ namespace BusinessLayer.Services
                     .ThenInclude(b => b.User)
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
                 .Include(l => l.Attendances)
                 .Where(l =>
                     l.Booking.AvailabilityId == availabilityId &&
@@ -302,6 +340,7 @@ namespace BusinessLayer.Services
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)
         {
             return await _db.Tutors
+                .Include(t => t.User)
                 .FirstOrDefaultAsync(t => t.UserId == userId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
         }
@@ -324,10 +363,22 @@ namespace BusinessLayer.Services
 
         private static LessonResponse ToLessonResponse(Lesson lesson)
         {
+            var availability = lesson.Booking.Availability;
+
             return new LessonResponse
             {
                 LessonId = lesson.LessonId,
                 BookingId = lesson.BookingId,
+
+                AvailabilityId = availability.AvailabilityId,
+
+                TutorId = availability.TutorId,
+                TutorUserId = availability.Tutor?.UserId ?? 0,
+                TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
+
+                SubjectId = availability.SubjectId,
+                SubjectName = availability.Subject?.Name,
+
                 ScheduleTime = lesson.ScheduleTime,
                 Duration = lesson.Duration,
                 Status = lesson.Status,
@@ -351,8 +402,14 @@ namespace BusinessLayer.Services
             {
                 MainLessonId = mainLesson.LessonId,
                 AvailabilityId = availability.AvailabilityId,
+
                 TutorId = availability.TutorId,
+                TutorUserId = availability.Tutor?.UserId ?? 0,
+                TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
+
                 SubjectId = availability.SubjectId,
+                SubjectName = availability.Subject?.Name,
+
                 ScheduleTime = mainLesson.ScheduleTime,
                 Duration = mainLesson.Duration,
                 EndTime = endTime,
@@ -360,6 +417,7 @@ namespace BusinessLayer.Services
                 MeetingLink = meetingLink,
                 CanTakeAttendance = now >= mainLesson.ScheduleTime,
                 CanComplete = now >= endTime,
+
                 Students = groupLessons.Select(l =>
                 {
                     var attendance = l.Attendances.FirstOrDefault();
