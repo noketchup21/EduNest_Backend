@@ -52,6 +52,9 @@ namespace DataAccessLayer.Entities
         // ── Parent Extras ─────────────────────────────────────────────────────
         public DbSet<FavoriteTutor> FavoriteTutors { get; set; }
 
+        //metri
+        public DbSet<AppMetric> AppMetrics { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -390,6 +393,9 @@ namespace DataAccessLayer.Entities
 
             modelBuilder.Entity<Availability>()
                 .HasIndex(a => new { a.TutorId, a.DayOfWeek });
+
+            modelBuilder.Entity<AppMetric>()
+    .HasIndex(x => new { x.Type, x.DeviceId });
 
             // ── PostgreSQL lowercase naming ───────────────────────────────────  ← ADD HERE
             foreach (var entity in modelBuilder.Model.GetEntityTypes())

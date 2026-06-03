@@ -45,21 +45,41 @@ namespace BusinessLayer.Services
 
             var wallet = await EnsureWalletAsync(availability.TutorId);
 
-            var totalLessons = await _db.Lessons
-                .CountAsync(l => l.BookingId == lesson.BookingId);
+            var alreadyCredited = await _db.WalletTransactions.AnyAsync(t =>
+                t.WalletId == wallet.WalletId &&
+                t.Type == "Credit" &&
+                t.Description != null &&
+                t.Description.Contains($"Lesson #{lesson.LessonId}"));
 
-            var amount = totalLessons <= 0
-                ? lesson.Booking.PriceAtBooking
-                : Math.Round(lesson.Booking.PriceAtBooking / totalLessons, 2);
+            if (alreadyCredited)
+                return;
 
-            wallet.Balance += amount;
+            var totalLessons = await _db.Lessons.CountAsync(l =>
+                l.BookingId == lesson.BookingId);
+
+            if (totalLessons <= 0)
+                totalLessons = 1;
+
+            var grossLessonAmount = Math.Round(
+                lesson.Booking.PriceAtBooking / totalLessons,
+                2);
+
+            var platformFee = Math.Round(grossLessonAmount * 0.10m, 2);
+
+            var tutorAmount = grossLessonAmount - platformFee;
+
+            wallet.Balance += tutorAmount;
 
             _db.WalletTransactions.Add(new WalletTransaction
             {
                 WalletId = wallet.WalletId,
                 Type = "Credit",
-                Amount = amount,
-                Description = $"Lesson #{lesson.LessonId} completed",
+                Amount = tutorAmount,
+                Description =
+                    $"Lesson #{lesson.LessonId} completed. " +
+                    $"Gross: {grossLessonAmount}, " +
+                    $"Platform fee 10%: {platformFee}, " +
+                    $"Tutor receives 90%: {tutorAmount}",
                 CreatedAt = DateTime.UtcNow
             });
         }
