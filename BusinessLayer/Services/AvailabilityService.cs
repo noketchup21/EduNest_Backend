@@ -21,7 +21,10 @@ namespace BusinessLayer.Services
                     .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
-                .Where(a => a.Status == "Active")
+.Where(a =>
+    a.Status == "Active" &&
+    a.Tutor.IsVerified &&
+    a.Tutor.VerificationStatus == "Approved")
                 .OrderBy(a => a.Tutor.User.Name)
                 .ThenBy(a => a.StartCourseTime)
                 .ToListAsync();
@@ -78,6 +81,12 @@ namespace BusinessLayer.Services
                 endCourseDate,
                 request.StartTime,
                 request.EndTime);
+
+            if (!tutor.IsVerified || tutor.VerificationStatus != "Approved")
+            {
+                throw new InvalidOperationException(
+                    "Your tutor profile is waiting for admin approval. You cannot create availability yet.");
+            }
 
             if (request.PricePerSlot <= 0)
                 throw new InvalidOperationException("Price per lesson must be greater than 0.");

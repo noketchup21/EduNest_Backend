@@ -1,6 +1,7 @@
 ﻿using BusinessLayer.DTOs.Admin;
 using BusinessLayer.DTOs.Payment;
 using BusinessLayer.DTOs.Subject;
+using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -21,7 +22,8 @@ namespace EduNest_Backend.Controllers
 
         [AllowAnonymous]
         [HttpPost("app/download")]
-        public async Task<ActionResult> TrackDownload([FromBody] TrackAppMetricRequest request)
+        public async Task<ActionResult> TrackDownload(
+            [FromBody] TrackAppMetricRequest request)
         {
             await _adminService.TrackDownloadAsync(request);
             return Ok(new { message = "Download tracked" });
@@ -29,7 +31,8 @@ namespace EduNest_Backend.Controllers
 
         [AllowAnonymous]
         [HttpPost("app/install")]
-        public async Task<ActionResult> TrackInstall([FromBody] TrackAppMetricRequest request)
+        public async Task<ActionResult> TrackInstall(
+            [FromBody] TrackAppMetricRequest request)
         {
             await _adminService.TrackInstallAsync(request);
             return Ok(new { message = "Install tracked" });
@@ -44,23 +47,36 @@ namespace EduNest_Backend.Controllers
 
         [Authorize(Roles = "Admin")]
         [HttpGet("tutor/pending")]
-        public async Task<ActionResult<List<AdminTutorResponse>>> GetPendingTutors()
+        public async Task<ActionResult<List<TutorVerificationResponse>>> GetPendingTutors()
         {
             return Ok(await _adminService.GetPendingTutorsAsync());
         }
 
         [Authorize(Roles = "Admin")]
+        [HttpGet("tutor/{tutorId:int}/verification")]
+        public async Task<ActionResult<TutorVerificationResponse>> GetTutorVerification(
+            int tutorId)
+        {
+            return Ok(await _adminService.GetTutorVerificationAsync(tutorId));
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("tutor/{tutorId:int}/approve")]
-        public async Task<ActionResult<AdminTutorResponse>> ApproveTutor(int tutorId)
+        public async Task<ActionResult<TutorVerificationResponse>> ApproveTutor(
+            int tutorId)
         {
             return Ok(await _adminService.ApproveTutorAsync(tutorId));
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost("tutor/{tutorId:int}/reject")]
-        public async Task<ActionResult<AdminTutorResponse>> RejectTutor(int tutorId)
+        public async Task<ActionResult<TutorVerificationResponse>> RejectTutor(
+            int tutorId,
+            [FromBody] RejectTutorRequest request)
         {
-            return Ok(await _adminService.RejectTutorAsync(tutorId));
+            return Ok(await _adminService.RejectTutorAsync(
+                tutorId,
+                request.Reason));
         }
 
         [Authorize(Roles = "Admin")]
@@ -76,6 +92,14 @@ namespace EduNest_Backend.Controllers
         public async Task<ActionResult<List<PayoutResponse>>> GetPayouts()
         {
             return Ok(await _adminService.GetPayoutsAsync());
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("payout/{payoutId:int}")]
+        public async Task<ActionResult<AdminPayoutDetailResponse>> GetPayoutDetail(
+            int payoutId)
+        {
+            return Ok(await _adminService.GetPayoutDetailAsync(payoutId));
         }
 
         [Authorize(Roles = "Admin")]

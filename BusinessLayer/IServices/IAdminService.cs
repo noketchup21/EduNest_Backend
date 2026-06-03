@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BusinessLayer.DTOs.Admin;
 using BusinessLayer.DTOs.Payment;
 using BusinessLayer.DTOs.Subject;
+using BusinessLayer.DTOs.Tutor;
 
 namespace BusinessLayer.IServices
 {
@@ -17,13 +18,15 @@ namespace BusinessLayer.IServices
 
         Task<AdminDashboardResponse> GetDashboardAsync();
 
-        Task<List<AdminTutorResponse>> GetPendingTutorsAsync();
-        Task<AdminTutorResponse> ApproveTutorAsync(int tutorId);
-        Task<AdminTutorResponse> RejectTutorAsync(int tutorId);
+        Task<List<TutorVerificationResponse>> GetPendingTutorsAsync();
+        Task<TutorVerificationResponse> GetTutorVerificationAsync(int tutorId);
+        Task<TutorVerificationResponse> ApproveTutorAsync(int tutorId);
+        Task<TutorVerificationResponse> RejectTutorAsync(int tutorId, string? reason);
 
         Task<SubjectResponseDTO> CreateSubjectAsync(CreateSubjectDTO request);
 
         Task<List<PayoutResponse>> GetPayoutsAsync();
+        Task<AdminPayoutDetailResponse> GetPayoutDetailAsync(int payoutId);
         Task<PayoutResponse> UpdatePayoutStatusAsync(int payoutId, string status);
     }
 }

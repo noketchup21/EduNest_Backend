@@ -50,4 +50,24 @@ namespace BusinessLayer.DTOs.Admin
         [Required]
         public string Status { get; set; } = string.Empty;
     }
+
+    public sealed class AdminPayoutDetailResponse
+    {
+        public int PayoutId { get; set; }
+        public int TutorId { get; set; }
+        public int TutorUserId { get; set; }
+
+        public string TutorName { get; set; } = string.Empty;
+        public string TutorEmail { get; set; } = string.Empty;
+
+        public decimal Amount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime RequestedAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+
+        public string? BankName { get; set; }
+        public string? AccountNumber { get; set; }
+        public string? AccountHolderName { get; set; }
+        public string? BranchName { get; set; }
+    }
 }
