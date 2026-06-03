@@ -30,6 +30,19 @@ namespace DataAccessLayer.Entities
 
         public int? TierId { get; set; }
 
+        public string VerificationStatus { get; set; } = "NotSubmitted";
+        // NotSubmitted, Pending, Approved, Rejected
+
+        public string? NationalIdNumber { get; set; }
+
+        public string? CccdFrontPublicId { get; set; }
+        public string? CccdBackPublicId { get; set; }
+        public string? CertificatePublicId { get; set; }
+
+        public DateTime? VerificationSubmittedAt { get; set; }
+        public DateTime? VerificationReviewedAt { get; set; }
+        public string? VerificationRejectReason { get; set; }
+
         // Navigation properties
         [ForeignKey("UserId")]
         public virtual User User { get; set; }

@@ -16,17 +16,21 @@ namespace DataAccessLayer.Entities
 
         public int TutorId { get; set; }
 
-        [Required, MaxLength(255)]
-        public string BankName { get; set; }
+        [Required, MaxLength(100)]
+        public string BankName { get; set; } = string.Empty;
 
         [Required, MaxLength(100)]
-        public string AccountNumber { get; set; }
+        public string AccountNumber { get; set; } = string.Empty;
 
-        [Required, MaxLength(255)]
-        public string AccountHolderName { get; set; }
+        [Required, MaxLength(150)]
+        public string AccountHolderName { get; set; } = string.Empty;
 
-        // Navigation properties
-        [ForeignKey("TutorId")]
-        public virtual Tutor Tutor { get; set; }
+        [MaxLength(150)]
+        public string? BranchName { get; set; }
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        [ForeignKey(nameof(TutorId))]
+        public Tutor Tutor { get; set; } = null!;
     }
 }

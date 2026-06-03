@@ -57,6 +57,9 @@ builder.Services.Configure<EmailSetting>(
 builder.Services.Configure<PayOSSetting>(
     builder.Configuration.GetSection("PayOs"));
 
+builder.Services.Configure<CloudinarySetting>(
+    builder.Configuration.GetSection("Cloudinary"));
+
 #region ADDSCOPE
 //Repo
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -95,6 +98,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 #endregion
 
 builder.Services.AddHostedService<BookingExpiryBackgroundService>();

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using BusinessLayer.DTOs.Admin;
 using BusinessLayer.DTOs.Payment;
 using BusinessLayer.DTOs.Subject;
+using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,10 +16,14 @@ namespace BusinessLayer.Services
     public sealed class AdminService : IAdminService
     {
         private readonly EduNestDbContext _db;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public AdminService(EduNestDbContext db)
+        public AdminService(
+            EduNestDbContext db,
+            ICloudinaryService cloudinaryService)
         {
             _db = db;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task TrackDownloadAsync(TrackAppMetricRequest request)
@@ -92,7 +97,8 @@ namespace BusinessLayer.Services
                 TotalSubjects = await _db.Subjects.CountAsync(),
 
                 TotalTutors = await _db.Tutors.CountAsync(),
-                PendingTutors = await _db.Tutors.CountAsync(t => !t.IsVerified),
+                PendingTutors = await _db.Tutors.CountAsync(t =>
+                    t.VerificationStatus == "Pending" || (!t.IsVerified && t.VerificationStatus != "Approved")),
                 ApprovedTutors = await _db.Tutors.CountAsync(t => t.IsVerified),
 
                 PendingPayouts = await _db.Payouts.CountAsync(p => p.Status == "Pending"),
@@ -107,42 +113,80 @@ namespace BusinessLayer.Services
             };
         }
 
-        public async Task<List<AdminTutorResponse>> GetPendingTutorsAsync()
+        public async Task<List<TutorVerificationResponse>> GetPendingTutorsAsync()
         {
-            return await _db.Tutors
+            var tutors = await _db.Tutors
                 .Include(t => t.User)
-                .Where(t => !t.IsVerified)
-                .OrderByDescending(t => t.TutorId)
-                .Select(t => ToTutorResponse(t))
+                .Include(t => t.BankAccount)
+                .Where(t =>
+                    t.VerificationStatus == "Pending" ||
+                    (!t.IsVerified && t.VerificationStatus != "Approved"))
+                .OrderByDescending(t => t.VerificationSubmittedAt)
+                .ThenByDescending(t => t.TutorId)
                 .ToListAsync();
+
+            return tutors.Select(ToTutorVerificationResponse).ToList();
         }
 
-        public async Task<AdminTutorResponse> ApproveTutorAsync(int tutorId)
+        public async Task<TutorVerificationResponse> GetTutorVerificationAsync(int tutorId)
         {
             var tutor = await _db.Tutors
                 .Include(t => t.User)
+                .Include(t => t.BankAccount)
                 .FirstOrDefaultAsync(t => t.TutorId == tutorId)
                 ?? throw new KeyNotFoundException("Tutor not found.");
 
-            tutor.IsVerified = true;
-
-            await _db.SaveChangesAsync();
-
-            return ToTutorResponse(tutor);
+            return ToTutorVerificationResponse(tutor);
         }
 
-        public async Task<AdminTutorResponse> RejectTutorAsync(int tutorId)
+        public async Task<TutorVerificationResponse> ApproveTutorAsync(int tutorId)
         {
             var tutor = await _db.Tutors
                 .Include(t => t.User)
+                .Include(t => t.BankAccount)
+                .FirstOrDefaultAsync(t => t.TutorId == tutorId)
+                ?? throw new KeyNotFoundException("Tutor not found.");
+
+            if (string.IsNullOrWhiteSpace(tutor.NationalIdNumber) ||
+                string.IsNullOrWhiteSpace(tutor.CccdFrontPublicId) ||
+                string.IsNullOrWhiteSpace(tutor.CccdBackPublicId) ||
+                string.IsNullOrWhiteSpace(tutor.CertificatePublicId) ||
+                tutor.BankAccount == null)
+            {
+                throw new InvalidOperationException(
+                    "Tutor has not submitted all verification documents and bank information.");
+            }
+
+            tutor.IsVerified = true;
+            tutor.VerificationStatus = "Approved";
+            tutor.VerificationReviewedAt = DateTime.UtcNow;
+            tutor.VerificationRejectReason = null;
+
+            await _db.SaveChangesAsync();
+
+            return ToTutorVerificationResponse(tutor);
+        }
+
+        public async Task<TutorVerificationResponse> RejectTutorAsync(
+            int tutorId,
+            string? reason)
+        {
+            var tutor = await _db.Tutors
+                .Include(t => t.User)
+                .Include(t => t.BankAccount)
                 .FirstOrDefaultAsync(t => t.TutorId == tutorId)
                 ?? throw new KeyNotFoundException("Tutor not found.");
 
             tutor.IsVerified = false;
+            tutor.VerificationStatus = "Rejected";
+            tutor.VerificationReviewedAt = DateTime.UtcNow;
+            tutor.VerificationRejectReason = string.IsNullOrWhiteSpace(reason)
+                ? "Rejected by admin."
+                : reason.Trim();
 
             await _db.SaveChangesAsync();
 
-            return ToTutorResponse(tutor);
+            return ToTutorVerificationResponse(tutor);
         }
 
         public async Task<SubjectResponseDTO> CreateSubjectAsync(CreateSubjectDTO request)
@@ -183,7 +227,40 @@ namespace BusinessLayer.Services
                 .ToListAsync();
         }
 
-        public async Task<PayoutResponse> UpdatePayoutStatusAsync(int payoutId, string status)
+        public async Task<AdminPayoutDetailResponse> GetPayoutDetailAsync(int payoutId)
+        {
+            var payout = await _db.Payouts
+                .Include(p => p.Tutor)
+                    .ThenInclude(t => t.User)
+                .Include(p => p.Tutor)
+                    .ThenInclude(t => t.BankAccount)
+                .FirstOrDefaultAsync(p => p.PayoutId == payoutId)
+                ?? throw new KeyNotFoundException("Payout not found.");
+
+            return new AdminPayoutDetailResponse
+            {
+                PayoutId = payout.PayoutId,
+                TutorId = payout.TutorId,
+                TutorUserId = payout.Tutor.UserId,
+
+                TutorName = payout.Tutor.User?.Name ?? $"Tutor #{payout.TutorId}",
+                TutorEmail = payout.Tutor.User?.Email ?? string.Empty,
+
+                Amount = payout.Amount,
+                Status = payout.Status,
+                RequestedAt = payout.RequestedAt,
+                PaidAt = payout.PaidAt,
+
+                BankName = payout.Tutor.BankAccount?.BankName,
+                AccountNumber = payout.Tutor.BankAccount?.AccountNumber,
+                AccountHolderName = payout.Tutor.BankAccount?.AccountHolderName,
+                BranchName = payout.Tutor.BankAccount?.BranchName
+            };
+        }
+
+        public async Task<PayoutResponse> UpdatePayoutStatusAsync(
+            int payoutId,
+            string status)
         {
             var payout = await _db.Payouts
                 .FirstOrDefaultAsync(p => p.PayoutId == payoutId)
@@ -201,33 +278,41 @@ namespace BusinessLayer.Services
             return ToPayoutResponse(payout);
         }
 
-        private static string NormalizePayoutStatus(string value)
+        private TutorVerificationResponse ToTutorVerificationResponse(Tutor tutor)
         {
-            var status = value.Trim();
-
-            if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                return "Pending";
-
-            if (status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
-                return "Paid";
-
-            if (status.Equals("Failed", StringComparison.OrdinalIgnoreCase))
-                return "Failed";
-
-            throw new InvalidOperationException("Payout status must be Pending, Paid, or Failed.");
-        }
-
-        private static AdminTutorResponse ToTutorResponse(Tutor tutor)
-        {
-            return new AdminTutorResponse
+            return new TutorVerificationResponse
             {
                 TutorId = tutor.TutorId,
                 UserId = tutor.UserId,
+
                 TutorName = tutor.User?.Name ?? $"Tutor #{tutor.TutorId}",
                 Email = tutor.User?.Email ?? string.Empty,
-                Phone = tutor.User?.Phone,
-                Bio = tutor.Bio,
-                IsVerified = tutor.IsVerified
+
+                IsVerified = tutor.IsVerified,
+                VerificationStatus = tutor.VerificationStatus,
+
+                NationalIdNumber = tutor.NationalIdNumber,
+
+                CccdFrontImageUrl = string.IsNullOrWhiteSpace(tutor.CccdFrontPublicId)
+                    ? null
+                    : _cloudinaryService.GenerateSignedImageUrl(tutor.CccdFrontPublicId),
+
+                CccdBackImageUrl = string.IsNullOrWhiteSpace(tutor.CccdBackPublicId)
+                    ? null
+                    : _cloudinaryService.GenerateSignedImageUrl(tutor.CccdBackPublicId),
+
+                CertificateImageUrl = string.IsNullOrWhiteSpace(tutor.CertificatePublicId)
+                    ? null
+                    : _cloudinaryService.GenerateSignedImageUrl(tutor.CertificatePublicId),
+
+                BankName = tutor.BankAccount?.BankName,
+                AccountNumber = tutor.BankAccount?.AccountNumber,
+                AccountHolderName = tutor.BankAccount?.AccountHolderName,
+                BranchName = tutor.BankAccount?.BranchName,
+
+                VerificationSubmittedAt = tutor.VerificationSubmittedAt,
+                VerificationReviewedAt = tutor.VerificationReviewedAt,
+                VerificationRejectReason = tutor.VerificationRejectReason
             };
         }
 
@@ -242,6 +327,22 @@ namespace BusinessLayer.Services
                 RequestedAt = payout.RequestedAt,
                 PaidAt = payout.PaidAt
             };
+        }
+
+        private static string NormalizePayoutStatus(string value)
+        {
+            var status = value.Trim();
+
+            if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+                return "Pending";
+
+            if (status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+                return "Paid";
+
+            if (status.Equals("Failed", StringComparison.OrdinalIgnoreCase))
+                return "Failed";
+
+            throw new InvalidOperationException("Payout status must be Pending, Paid, or Failed.");
         }
     }
 }

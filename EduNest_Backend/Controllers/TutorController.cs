@@ -125,6 +125,24 @@ namespace EduNest_Backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Tutor")]
+        [HttpGet("verification/me")]
+        public async Task<ActionResult<TutorVerificationResponse>> GetMyVerification()
+        {
+            return Ok(await _tutorService.GetMyVerificationAsync(GetCurrentUserId()));
+        }
+
+        [Authorize(Roles = "Tutor")]
+        [HttpPost("verification")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<TutorVerificationResponse>> SubmitVerification(
+            [FromForm] SubmitTutorVerificationRequest request)
+        {
+            return Ok(await _tutorService.SubmitTutorVerificationAsync(
+                GetCurrentUserId(),
+                request));
+        }
+
         // ── Helper ────────────────────────────────────────────────────────────
         private int GetCurrentUserId()
         {
