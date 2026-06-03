@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BusinessLayer.DTOs.Availability;
+﻿using BusinessLayer.DTOs.Availability;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +18,7 @@ namespace BusinessLayer.Services
         {
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.Status == "Active")
                 .OrderBy(a => a.StartCourseTime)
@@ -35,6 +31,7 @@ namespace BusinessLayer.Services
         {
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutorId && a.Status == "Active")
                 .OrderBy(a => a.StartCourseTime)
@@ -49,6 +46,7 @@ namespace BusinessLayer.Services
 
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutor.TutorId)
                 .OrderByDescending(a => a.StartCourseTime)
@@ -63,34 +61,57 @@ namespace BusinessLayer.Services
         {
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
 
-            if (request.StartCourseTime > request.EndCourseTime)
-                throw new InvalidOperationException("Start course time must be before end course time.");
+            ValidateCourseTime(
+                request.StartCourseTime,
+                request.EndCourseTime,
+                request.StartTime,
+                request.EndTime);
 
-            if (request.StartTime >= request.EndTime)
-                throw new InvalidOperationException("Start time must be before end time.");
+            if (request.PricePerSlot <= 0)
+                throw new InvalidOperationException("Price per lesson must be greater than 0.");
+
+            var normalizedDay = NormalizeDayOfWeek(request.DayOfWeek);
+
+            await EnsureNoTutorAvailabilityConflictAsync(
+                tutor.TutorId,
+                excludeAvailabilityId: null,
+                dayOfWeek: normalizedDay,
+                startCourseTime: request.StartCourseTime,
+                endCourseTime: request.EndCourseTime,
+                startTime: request.StartTime,
+                endTime: request.EndTime);
+
+            var slotCount = CalculateSlotCount(
+                request.StartCourseTime,
+                request.EndCourseTime,
+                normalizedDay);
 
             var availability = new Availability
             {
                 TutorId = tutor.TutorId,
                 SubjectId = request.SubjectId,
-                DayOfWeek = request.DayOfWeek,
+                DayOfWeek = normalizedDay,
                 StartCourseTime = request.StartCourseTime,
                 EndCourseTime = request.EndCourseTime,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
                 Mode = request.Mode,
-                Slot = CalculateSlotCount(
-    request.StartCourseTime,
-    request.EndCourseTime,
-    request.DayOfWeek
-),
                 Level = request.Level,
+                Slot = slotCount,
                 PricePerSlot = request.PricePerSlot,
                 Status = "Active"
             };
 
             _db.Availabilities.Add(availability);
             await _db.SaveChangesAsync();
+
+            availability.Tutor = tutor;
+
+            if (availability.SubjectId.HasValue)
+            {
+                availability.Subject = await _db.Subjects
+                    .FirstOrDefaultAsync(s => s.SubjectId == availability.SubjectId.Value);
+            }
 
             return ToResponse(availability);
         }
@@ -103,6 +124,8 @@ namespace BusinessLayer.Services
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
 
             var availability = await _db.Availabilities
+                .Include(a => a.Tutor)
+                .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .FirstOrDefaultAsync(a =>
                     a.AvailabilityId == availabilityId &&
@@ -113,16 +136,16 @@ namespace BusinessLayer.Services
                 availability.SubjectId = request.SubjectId;
 
             if (!string.IsNullOrWhiteSpace(request.DayOfWeek))
-                availability.DayOfWeek = request.DayOfWeek;
+                availability.DayOfWeek = NormalizeDayOfWeek(request.DayOfWeek);
 
             if (!string.IsNullOrWhiteSpace(request.Status))
-                availability.Status = request.Status;
+                availability.Status = NormalizeAvailabilityStatus(request.Status);
 
             if (!string.IsNullOrWhiteSpace(request.Mode))
-                availability.Mode = request.Mode;
+                availability.Mode = request.Mode.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.Level))
-                availability.Level = request.Level;
+                availability.Level = request.Level.Trim();
 
             if (request.StartCourseTime.HasValue)
                 availability.StartCourseTime = request.StartCourseTime.Value;
@@ -136,26 +159,48 @@ namespace BusinessLayer.Services
             if (request.EndTime.HasValue)
                 availability.EndTime = request.EndTime.Value;
 
-
             if (request.PricePerSlot.HasValue)
+            {
+                if (request.PricePerSlot.Value <= 0)
+                    throw new InvalidOperationException("Price per lesson must be greater than 0.");
+
                 availability.PricePerSlot = request.PricePerSlot.Value;
+            }
 
-            if (!string.IsNullOrWhiteSpace(request.Status))
-                availability.Status = request.Status;
+            availability.DayOfWeek = NormalizeDayOfWeek(availability.DayOfWeek);
 
-            if (availability.StartCourseTime > availability.EndCourseTime)
-                throw new InvalidOperationException("Start course time must be before end course time.");
+            ValidateCourseTime(
+                availability.StartCourseTime,
+                availability.EndCourseTime,
+                availability.StartTime,
+                availability.EndTime);
 
-            if (availability.StartTime >= availability.EndTime)
-                throw new InvalidOperationException("Start time must be before end time.");
+            if (availability.Status == "Active")
+            {
+                await EnsureNoTutorAvailabilityConflictAsync(
+                    availability.TutorId,
+                    excludeAvailabilityId: availability.AvailabilityId,
+                    dayOfWeek: availability.DayOfWeek,
+                    startCourseTime: availability.StartCourseTime,
+                    endCourseTime: availability.EndCourseTime,
+                    startTime: availability.StartTime,
+                    endTime: availability.EndTime);
+            }
 
-            availability.Slot = CalculateSlotCount(
-    availability.StartCourseTime,
-    availability.EndCourseTime,
-    availability.DayOfWeek
-);
+            var slotCount = CalculateSlotCount(
+                availability.StartCourseTime,
+                availability.EndCourseTime,
+                availability.DayOfWeek);
+
+            availability.Slot = slotCount;
 
             await _db.SaveChangesAsync();
+
+            if (availability.SubjectId.HasValue)
+            {
+                availability.Subject = await _db.Subjects
+                    .FirstOrDefaultAsync(s => s.SubjectId == availability.SubjectId.Value);
+            }
 
             return ToResponse(availability);
         }
@@ -177,42 +222,102 @@ namespace BusinessLayer.Services
 
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)
         {
-            return await _db.Tutors.FirstOrDefaultAsync(t => t.UserId == userId)
+            return await _db.Tutors
+                .FirstOrDefaultAsync(t => t.UserId == userId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
+        }
+
+        private async Task EnsureNoTutorAvailabilityConflictAsync(
+            int tutorId,
+            int? excludeAvailabilityId,
+            string dayOfWeek,
+            DateTime startCourseTime,
+            DateTime endCourseTime,
+            TimeSpan startTime,
+            TimeSpan endTime)
+        {
+            var normalizedDay = NormalizeDayOfWeek(dayOfWeek);
+
+            var existingAvailabilities = await _db.Availabilities
+                .Where(a =>
+                    a.TutorId == tutorId &&
+                    a.Status == "Active" &&
+                    a.DayOfWeek == normalizedDay &&
+                    (!excludeAvailabilityId.HasValue ||
+                     a.AvailabilityId != excludeAvailabilityId.Value))
+                .ToListAsync();
+
+            var newStartDate = startCourseTime.Date;
+            var newEndDate = endCourseTime.Date;
+
+            var conflict = existingAvailabilities.FirstOrDefault(a =>
+                DateRangesOverlap(
+                    newStartDate,
+                    newEndDate,
+                    a.StartCourseTime.Date,
+                    a.EndCourseTime.Date) &&
+                TimeRangesOverlap(
+                    startTime,
+                    endTime,
+                    a.StartTime,
+                    a.EndTime));
+
+            if (conflict != null)
+            {
+                throw new InvalidOperationException(
+                    $"You already have availability on {normalizedDay} " +
+                    $"from {conflict.StartTime:hh\\:mm} to {conflict.EndTime:hh\\:mm} " +
+                    $"during this course date range.");
+            }
         }
 
         private static AvailabilityResponse ToResponse(Availability a)
         {
-            var booked = a.Bookings?
-                .Count(b =>
-                    !b.IsDeleted &&
-                    (b.Status == "Pending" || b.Status == "Confirmed"))
-                ?? 0;
-
             return new AvailabilityResponse
             {
                 AvailabilityId = a.AvailabilityId,
                 TutorId = a.TutorId,
                 TutorUserId = a.Tutor?.UserId ?? 0,
                 SubjectId = a.SubjectId,
+
+                // Keep these only if your AvailabilityResponse DTO has them.
+                //SubjectName = a.Subject?.Name,
+                //TotalCoursePrice = a.PricePerSlot * Math.Max(1, a.Slot),
+
                 DayOfWeek = a.DayOfWeek,
                 StartCourseTime = a.StartCourseTime,
                 EndCourseTime = a.EndCourseTime,
                 StartTime = a.StartTime,
                 EndTime = a.EndTime,
+
+                // Slot means number of lessons, not capacity.
                 Slot = a.Slot,
-                RemainingSlot = Math.Max(0, a.Slot - booked),
+                //RemainingSlot = a.Slot,
+
                 PricePerSlot = a.PricePerSlot,
                 Status = a.Status,
-                    Mode = a.Mode,
-                    Level = a.Level
+                Mode = a.Mode,
+                Level = a.Level
             };
         }
 
+        private static void ValidateCourseTime(
+            DateTime startCourseTime,
+            DateTime endCourseTime,
+            TimeSpan startTime,
+            TimeSpan endTime)
+        {
+            if (startCourseTime.Date > endCourseTime.Date)
+                throw new InvalidOperationException("Start course time must be before end course time.");
+
+            if (startTime >= endTime)
+                throw new InvalidOperationException("Start time must be before end time.");
+        }
+
         private static int CalculateSlotCount(
-    DateTime startCourseTime,
-    DateTime endCourseTime,
-    string dayOfWeek)
+            DateTime startCourseTime,
+            DateTime endCourseTime,
+            string dayOfWeek)
         {
             if (!Enum.TryParse<DayOfWeek>(dayOfWeek, true, out var targetDay))
                 throw new InvalidOperationException("Invalid day of week.");
@@ -228,15 +333,57 @@ namespace BusinessLayer.Services
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
                 if (date.DayOfWeek == targetDay)
-                {
                     count++;
-                }
             }
 
             if (count <= 0)
-                throw new InvalidOperationException("No lesson slot found in this course date range.");
+                throw new InvalidOperationException("No lesson found in this date range for selected day.");
 
             return count;
+        }
+
+        private static bool DateRangesOverlap(
+            DateTime startA,
+            DateTime endA,
+            DateTime startB,
+            DateTime endB)
+        {
+            return startA <= endB && startB <= endA;
+        }
+
+        private static bool TimeRangesOverlap(
+            TimeSpan startA,
+            TimeSpan endA,
+            TimeSpan startB,
+            TimeSpan endB)
+        {
+            // Allows 18:00-20:00 and 20:00-22:00.
+            // Blocks 18:00-20:00 and 19:00-21:00.
+            return startA < endB && startB < endA;
+        }
+
+        private static string NormalizeDayOfWeek(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException("Day of week is required.");
+
+            if (!Enum.TryParse<DayOfWeek>(value.Trim(), true, out var day))
+                throw new InvalidOperationException("Invalid day of week.");
+
+            return day.ToString();
+        }
+
+        private static string NormalizeAvailabilityStatus(string value)
+        {
+            var status = value.Trim();
+
+            if (status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                return "Active";
+
+            if (status.Equals("Inactive", StringComparison.OrdinalIgnoreCase))
+                return "Inactive";
+
+            throw new InvalidOperationException("Availability status must be Active or Inactive.");
         }
     }
 }
