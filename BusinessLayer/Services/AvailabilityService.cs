@@ -18,10 +18,12 @@ namespace BusinessLayer.Services
         {
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.Status == "Active")
-                .OrderBy(a => a.StartCourseTime)
+                .OrderBy(a => a.Tutor.User.Name)
+                .ThenBy(a => a.StartCourseTime)
                 .ToListAsync();
 
             return data.Select(ToResponse).ToList();
@@ -31,6 +33,7 @@ namespace BusinessLayer.Services
         {
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutorId && a.Status == "Active")
@@ -46,6 +49,7 @@ namespace BusinessLayer.Services
 
             var data = await _db.Availabilities
                 .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .Where(a => a.TutorId == tutor.TutorId)
@@ -59,7 +63,10 @@ namespace BusinessLayer.Services
             int tutorUserId,
             CreateAvailabilityRequest request)
         {
-            var tutor = await GetTutorByUserIdAsync(tutorUserId);
+            var tutor = await _db.Tutors
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.UserId == tutorUserId)
+                ?? throw new KeyNotFoundException("Tutor profile not found.");
 
             var normalizedDay = NormalizeDayOfWeek(request.DayOfWeek);
 
@@ -128,6 +135,7 @@ namespace BusinessLayer.Services
 
             var availability = await _db.Availabilities
                 .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
                 .FirstOrDefaultAsync(a =>
@@ -171,7 +179,6 @@ namespace BusinessLayer.Services
             }
 
             availability.DayOfWeek = NormalizeDayOfWeek(availability.DayOfWeek);
-
             availability.StartCourseTime = ToUtcDateOnly(availability.StartCourseTime);
             availability.EndCourseTime = ToUtcDateOnly(availability.EndCourseTime);
 
@@ -227,6 +234,7 @@ namespace BusinessLayer.Services
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)
         {
             return await _db.Tutors
+                .Include(t => t.User)
                 .FirstOrDefaultAsync(t => t.UserId == userId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
         }
@@ -283,9 +291,13 @@ namespace BusinessLayer.Services
             return new AvailabilityResponse
             {
                 AvailabilityId = a.AvailabilityId,
+
                 TutorId = a.TutorId,
                 TutorUserId = a.Tutor?.UserId ?? 0,
+                TutorName = a.Tutor?.User?.Name ?? $"Tutor #{a.TutorId}",
+
                 SubjectId = a.SubjectId,
+                SubjectName = a.Subject?.Name,
 
                 DayOfWeek = a.DayOfWeek,
                 StartCourseTime = a.StartCourseTime,
@@ -295,6 +307,8 @@ namespace BusinessLayer.Services
 
                 Slot = a.Slot,
                 PricePerSlot = a.PricePerSlot,
+                TotalCoursePrice = a.PricePerSlot * Math.Max(1, a.Slot),
+
                 Status = a.Status,
                 Mode = a.Mode,
                 Level = a.Level

@@ -8,6 +8,16 @@ namespace BusinessLayer.DTOs.Lesson
     {
         public int LessonId { get; set; }
         public int BookingId { get; set; }
+
+        public int AvailabilityId { get; set; }
+
+        public int TutorId { get; set; }
+        public int TutorUserId { get; set; }
+        public string TutorName { get; set; } = string.Empty;
+
+        public int? SubjectId { get; set; }
+        public string? SubjectName { get; set; }
+
         public DateTime ScheduleTime { get; set; }
         public int Duration { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -40,8 +50,13 @@ namespace BusinessLayer.DTOs.Lesson
     {
         public int MainLessonId { get; set; }
         public int AvailabilityId { get; set; }
+
         public int TutorId { get; set; }
+        public int TutorUserId { get; set; }
+        public string TutorName { get; set; } = string.Empty;
+
         public int? SubjectId { get; set; }
+        public string? SubjectName { get; set; }
 
         public DateTime ScheduleTime { get; set; }
         public int Duration { get; set; }
