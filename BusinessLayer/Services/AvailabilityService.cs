@@ -61,29 +61,32 @@ namespace BusinessLayer.Services
         {
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
 
+            var normalizedDay = NormalizeDayOfWeek(request.DayOfWeek);
+
+            var startCourseDate = ToUtcDateOnly(request.StartCourseTime);
+            var endCourseDate = ToUtcDateOnly(request.EndCourseTime);
+
             ValidateCourseTime(
-                request.StartCourseTime,
-                request.EndCourseTime,
+                startCourseDate,
+                endCourseDate,
                 request.StartTime,
                 request.EndTime);
 
             if (request.PricePerSlot <= 0)
                 throw new InvalidOperationException("Price per lesson must be greater than 0.");
 
-            var normalizedDay = NormalizeDayOfWeek(request.DayOfWeek);
-
             await EnsureNoTutorAvailabilityConflictAsync(
                 tutor.TutorId,
                 excludeAvailabilityId: null,
                 dayOfWeek: normalizedDay,
-                startCourseTime: request.StartCourseTime,
-                endCourseTime: request.EndCourseTime,
+                startCourseTime: startCourseDate,
+                endCourseTime: endCourseDate,
                 startTime: request.StartTime,
                 endTime: request.EndTime);
 
             var slotCount = CalculateSlotCount(
-                request.StartCourseTime,
-                request.EndCourseTime,
+                startCourseDate,
+                endCourseDate,
                 normalizedDay);
 
             var availability = new Availability
@@ -91,12 +94,12 @@ namespace BusinessLayer.Services
                 TutorId = tutor.TutorId,
                 SubjectId = request.SubjectId,
                 DayOfWeek = normalizedDay,
-                StartCourseTime = request.StartCourseTime,
-                EndCourseTime = request.EndCourseTime,
+                StartCourseTime = startCourseDate,
+                EndCourseTime = endCourseDate,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
-                Mode = request.Mode,
-                Level = request.Level,
+                Mode = request.Mode.Trim(),
+                Level = request.Level.Trim(),
                 Slot = slotCount,
                 PricePerSlot = request.PricePerSlot,
                 Status = "Active"
@@ -169,6 +172,9 @@ namespace BusinessLayer.Services
 
             availability.DayOfWeek = NormalizeDayOfWeek(availability.DayOfWeek);
 
+            availability.StartCourseTime = ToUtcDateOnly(availability.StartCourseTime);
+            availability.EndCourseTime = ToUtcDateOnly(availability.EndCourseTime);
+
             ValidateCourseTime(
                 availability.StartCourseTime,
                 availability.EndCourseTime,
@@ -187,12 +193,10 @@ namespace BusinessLayer.Services
                     endTime: availability.EndTime);
             }
 
-            var slotCount = CalculateSlotCount(
+            availability.Slot = CalculateSlotCount(
                 availability.StartCourseTime,
                 availability.EndCourseTime,
                 availability.DayOfWeek);
-
-            availability.Slot = slotCount;
 
             await _db.SaveChangesAsync();
 
@@ -242,10 +246,13 @@ namespace BusinessLayer.Services
                 .Where(a =>
                     a.TutorId == tutorId &&
                     a.Status == "Active" &&
-                    a.DayOfWeek == normalizedDay &&
                     (!excludeAvailabilityId.HasValue ||
                      a.AvailabilityId != excludeAvailabilityId.Value))
                 .ToListAsync();
+
+            existingAvailabilities = existingAvailabilities
+                .Where(a => NormalizeDayOfWeek(a.DayOfWeek) == normalizedDay)
+                .ToList();
 
             var newStartDate = startCourseTime.Date;
             var newEndDate = endCourseTime.Date;
@@ -280,25 +287,23 @@ namespace BusinessLayer.Services
                 TutorUserId = a.Tutor?.UserId ?? 0,
                 SubjectId = a.SubjectId,
 
-                // Keep these only if your AvailabilityResponse DTO has them.
-                //SubjectName = a.Subject?.Name,
-                //TotalCoursePrice = a.PricePerSlot * Math.Max(1, a.Slot),
-
                 DayOfWeek = a.DayOfWeek,
                 StartCourseTime = a.StartCourseTime,
                 EndCourseTime = a.EndCourseTime,
                 StartTime = a.StartTime,
                 EndTime = a.EndTime,
 
-                // Slot means number of lessons, not capacity.
                 Slot = a.Slot,
-                //RemainingSlot = a.Slot,
-
                 PricePerSlot = a.PricePerSlot,
                 Status = a.Status,
                 Mode = a.Mode,
                 Level = a.Level
             };
+        }
+
+        private static DateTime ToUtcDateOnly(DateTime value)
+        {
+            return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
         }
 
         private static void ValidateCourseTime(
@@ -357,8 +362,6 @@ namespace BusinessLayer.Services
             TimeSpan startB,
             TimeSpan endB)
         {
-            // Allows 18:00-20:00 and 20:00-22:00.
-            // Blocks 18:00-20:00 and 19:00-21:00.
             return startA < endB && startB < endA;
         }
 
