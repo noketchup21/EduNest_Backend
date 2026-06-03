@@ -45,6 +45,12 @@ namespace BusinessLayer.Services
             if (booking.Status is "Confirmed" or "Completed")
                 throw new InvalidOperationException("Booking already paid.");
 
+            if (booking.Status == "Cancelled")
+                throw new InvalidOperationException("This booking was cancelled.");
+
+            if (booking.Status == "Expired")
+                throw new InvalidOperationException("This booking has expired. Please create a new booking.");
+
             var existing = booking.Payments
                 .Where(p => p.Status == "Pending")
                 .OrderByDescending(p => p.CreatedAt)
@@ -298,12 +304,20 @@ namespace BusinessLayer.Services
                 if (date.DayOfWeek != day)
                     continue;
 
+                var vietnamTimeZone = GetVietnamTimeZone();
+
+                var localLessonTime = DateTime.SpecifyKind(
+                    date.Add(time),
+                    DateTimeKind.Unspecified);
+
+                var utcLessonTime = TimeZoneInfo.ConvertTimeToUtc(
+                    localLessonTime,
+                    vietnamTimeZone);
+
                 _db.Lessons.Add(new Lesson
                 {
                     BookingId = booking.BookingId,
-                    ScheduleTime = DateTime.SpecifyKind(
-                        date.Add(time),
-                        DateTimeKind.Utc),
+                    ScheduleTime = utcLessonTime,
                     Duration = duration,
                     Status = "Scheduled",
                     MeetingLink = string.Empty
@@ -409,6 +423,18 @@ namespace BusinessLayer.Services
                 CheckoutUrl = payment.CheckoutUrl,
                 QrCode = payment.QrCode
             };
+        }
+
+        private static TimeZoneInfo GetVietnamTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
         }
     }
 }
