@@ -59,6 +59,34 @@ namespace EduNest_Backend.Controllers
                 request));
         }
 
+        [Authorize]
+        [HttpGet("{lessonId:int}/detail")]
+        public async Task<ActionResult<LessonDetailResponse>> GetLessonDetail(int lessonId)
+        {
+            return Ok(await _lessonService.GetLessonDetailAsync(CurrentUserId(), lessonId));
+        }
+
+        [Authorize]
+        [HttpPost("{lessonId:int}/meeting-link")]
+        public async Task<ActionResult<LessonDetailResponse>> SetMeetingLink(
+            int lessonId,
+            [FromBody] SetMeetingLinkRequest request)
+        {
+            return Ok(await _lessonService.SetMeetingLinkAsync(
+                CurrentUserId(),
+                lessonId,
+                request.MeetingLink));
+        }
+
+        [Authorize]
+        [HttpPost("{lessonId:int}/complete-group")]
+        public async Task<ActionResult<LessonDetailResponse>> CompleteLessonGroup(int lessonId)
+        {
+            return Ok(await _lessonService.CompleteLessonGroupAsync(
+                CurrentUserId(),
+                lessonId));
+        }
+
         private int CurrentUserId()
         {
             var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)

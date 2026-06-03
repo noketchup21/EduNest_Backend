@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using BusinessLayer.DTOs.Attendance;
+﻿using BusinessLayer.DTOs.Attendance;
 using BusinessLayer.DTOs.Lesson;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
@@ -24,11 +19,12 @@ namespace BusinessLayer.Services
 
         public async Task<List<LessonResponse>> GetMyLessonsAsync(int userId)
         {
-            var tutor = await _db.Tutors.FirstOrDefaultAsync(t => t.UserId == userId);
+            var tutor = await _db.Tutors
+                .FirstOrDefaultAsync(t => t.UserId == userId);
 
             var query = _db.Lessons
                 .Include(l => l.Booking)
-                .ThenInclude(b => b.Availability)
+                    .ThenInclude(b => b.Availability)
                 .AsQueryable();
 
             query = tutor != null
@@ -66,6 +62,43 @@ namespace BusinessLayer.Services
             return ToLessonResponse(lesson);
         }
 
+        public async Task<LessonDetailResponse> GetLessonDetailAsync(
+            int tutorUserId,
+            int lessonId)
+        {
+            var lesson = await GetTutorLessonAsync(tutorUserId, lessonId);
+
+            var groupLessons = await GetLessonGroupAsync(
+                lesson.Booking.AvailabilityId,
+                lesson.ScheduleTime);
+
+            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+        }
+
+        public async Task<LessonDetailResponse> SetMeetingLinkAsync(
+            int tutorUserId,
+            int lessonId,
+            string meetingLink)
+        {
+            if (string.IsNullOrWhiteSpace(meetingLink))
+                throw new InvalidOperationException("Meeting link is required.");
+
+            var lesson = await GetTutorLessonAsync(tutorUserId, lessonId);
+
+            var groupLessons = await GetLessonGroupAsync(
+                lesson.Booking.AvailabilityId,
+                lesson.ScheduleTime);
+
+            foreach (var item in groupLessons)
+            {
+                item.MeetingLink = meetingLink.Trim();
+            }
+
+            await _db.SaveChangesAsync();
+
+            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+        }
+
         public async Task<LessonResponse> MarkAttendanceAsync(
             int tutorUserId,
             int lessonId,
@@ -73,12 +106,23 @@ namespace BusinessLayer.Services
         {
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
-                .ThenInclude(b => b.Availability)
+                    .ThenInclude(b => b.Availability)
                 .Include(l => l.Attendances)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId)
                 ?? throw new KeyNotFoundException("Lesson not found.");
 
             await EnsureTutorOwnsLessonAsync(tutorUserId, lesson);
+
+            if (lesson.Booking.Status != "Confirmed")
+                throw new InvalidOperationException("Booking is not confirmed.");
+
+            if (DateTime.UtcNow < lesson.ScheduleTime)
+                throw new InvalidOperationException("Attendance can only be taken after the lesson has started.");
+
+            if (lesson.Status == "Completed")
+                throw new InvalidOperationException("Cannot update attendance after lesson is completed.");
+
+            var normalizedStatus = NormalizeAttendanceStatus(request.Status);
 
             var attendance = lesson.Attendances.FirstOrDefault();
 
@@ -94,9 +138,11 @@ namespace BusinessLayer.Services
                 _db.Attendances.Add(attendance);
             }
 
-            attendance.Status = request.Status;
+            attendance.Status = normalizedStatus;
             attendance.Note = request.Note ?? string.Empty;
-            attendance.AttendedAt = request.Status == "Absent" ? null : DateTime.UtcNow;
+            attendance.AttendedAt = normalizedStatus == "Absent"
+                ? null
+                : DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
 
@@ -110,7 +156,7 @@ namespace BusinessLayer.Services
         {
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
-                .ThenInclude(b => b.Availability)
+                    .ThenInclude(b => b.Availability)
                 .FirstOrDefaultAsync(l => l.LessonId == lessonId)
                 ?? throw new KeyNotFoundException("Lesson not found.");
 
@@ -121,6 +167,11 @@ namespace BusinessLayer.Services
 
             if (lesson.Booking.Status != "Confirmed")
                 throw new InvalidOperationException("Booking is not confirmed.");
+
+            var endTime = lesson.ScheduleTime.AddMinutes(lesson.Duration);
+
+            if (DateTime.UtcNow < endTime)
+                throw new InvalidOperationException("Lesson cannot be completed before end time.");
 
             lesson.Status = "Completed";
 
@@ -138,6 +189,58 @@ namespace BusinessLayer.Services
             return ToLessonResponse(lesson);
         }
 
+        public async Task<LessonDetailResponse> CompleteLessonGroupAsync(
+            int tutorUserId,
+            int lessonId)
+        {
+            var lesson = await GetTutorLessonAsync(tutorUserId, lessonId);
+
+            if (lesson.Booking.Status != "Confirmed")
+                throw new InvalidOperationException("Booking is not confirmed.");
+
+            var endTime = lesson.ScheduleTime.AddMinutes(lesson.Duration);
+
+            if (DateTime.UtcNow < endTime)
+                throw new InvalidOperationException("Lesson cannot be completed before end time.");
+
+            var groupLessons = await GetLessonGroupAsync(
+                lesson.Booking.AvailabilityId,
+                lesson.ScheduleTime);
+
+            foreach (var item in groupLessons)
+            {
+                if (item.Status == "Completed")
+                    continue;
+
+                item.Status = "Completed";
+
+                await _walletService.CreditTutorForLessonAsync(item);
+            }
+
+            var bookingIds = groupLessons
+                .Select(l => l.BookingId)
+                .Distinct()
+                .ToList();
+
+            var bookings = await _db.Bookings
+                .Include(b => b.Lessons)
+                .Where(b => bookingIds.Contains(b.BookingId))
+                .ToListAsync();
+
+            foreach (var booking in bookings)
+            {
+                if (booking.Lessons.Count > 0 &&
+                    booking.Lessons.All(l => l.Status == "Completed"))
+                {
+                    booking.Status = "Completed";
+                }
+            }
+
+            await _db.SaveChangesAsync();
+
+            return ToLessonDetailResponse(lesson, lesson.Booking.Availability, groupLessons);
+        }
+
         private async Task<Booking> GetTutorBookingAsync(int tutorUserId, int bookingId)
         {
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
@@ -151,6 +254,43 @@ namespace BusinessLayer.Services
                 ?? throw new KeyNotFoundException("Booking not found.");
         }
 
+        private async Task<Lesson> GetTutorLessonAsync(int tutorUserId, int lessonId)
+        {
+            var tutor = await GetTutorByUserIdAsync(tutorUserId);
+
+            var lesson = await _db.Lessons
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.User)
+                .Include(l => l.Attendances)
+                .FirstOrDefaultAsync(l => l.LessonId == lessonId)
+                ?? throw new KeyNotFoundException("Lesson not found.");
+
+            if (lesson.Booking.Availability.TutorId != tutor.TutorId)
+                throw new UnauthorizedAccessException("This lesson does not belong to the tutor.");
+
+            return lesson;
+        }
+
+        private async Task<List<Lesson>> GetLessonGroupAsync(
+            int availabilityId,
+            DateTime scheduleTime)
+        {
+            return await _db.Lessons
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                .Include(l => l.Attendances)
+                .Where(l =>
+                    l.Booking.AvailabilityId == availabilityId &&
+                    l.ScheduleTime == scheduleTime &&
+                    l.Booking.Status == "Confirmed")
+                .OrderBy(l => l.Booking.User!.Name)
+                .ToListAsync();
+        }
+
         private async Task EnsureTutorOwnsLessonAsync(int tutorUserId, Lesson lesson)
         {
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
@@ -160,17 +300,81 @@ namespace BusinessLayer.Services
         }
 
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)
-            => await _db.Tutors.FirstOrDefaultAsync(t => t.UserId == userId)
-               ?? throw new KeyNotFoundException("Tutor profile not found.");
-
-        private static LessonResponse ToLessonResponse(Lesson l) => new()
         {
-            LessonId = l.LessonId,
-            BookingId = l.BookingId,
-            ScheduleTime = l.ScheduleTime,
-            Duration = l.Duration,
-            Status = l.Status,
-            MeetingLink = l.MeetingLink
-        };
+            return await _db.Tutors
+                .FirstOrDefaultAsync(t => t.UserId == userId)
+                ?? throw new KeyNotFoundException("Tutor profile not found.");
+        }
+
+        private static string NormalizeAttendanceStatus(string status)
+        {
+            var value = status.Trim();
+
+            if (value.Equals("Present", StringComparison.OrdinalIgnoreCase))
+                return "Present";
+
+            if (value.Equals("Absent", StringComparison.OrdinalIgnoreCase))
+                return "Absent";
+
+            if (value.Equals("Late", StringComparison.OrdinalIgnoreCase))
+                return "Late";
+
+            throw new InvalidOperationException("Attendance status must be Present, Absent, or Late.");
+        }
+
+        private static LessonResponse ToLessonResponse(Lesson lesson)
+        {
+            return new LessonResponse
+            {
+                LessonId = lesson.LessonId,
+                BookingId = lesson.BookingId,
+                ScheduleTime = lesson.ScheduleTime,
+                Duration = lesson.Duration,
+                Status = lesson.Status,
+                MeetingLink = lesson.MeetingLink
+            };
+        }
+
+        private static LessonDetailResponse ToLessonDetailResponse(
+            Lesson mainLesson,
+            Availability availability,
+            List<Lesson> groupLessons)
+        {
+            var now = DateTime.UtcNow;
+            var endTime = mainLesson.ScheduleTime.AddMinutes(mainLesson.Duration);
+
+            var meetingLink = groupLessons
+                .Select(l => l.MeetingLink)
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? string.Empty;
+
+            return new LessonDetailResponse
+            {
+                MainLessonId = mainLesson.LessonId,
+                AvailabilityId = availability.AvailabilityId,
+                TutorId = availability.TutorId,
+                SubjectId = availability.SubjectId,
+                ScheduleTime = mainLesson.ScheduleTime,
+                Duration = mainLesson.Duration,
+                EndTime = endTime,
+                Status = mainLesson.Status,
+                MeetingLink = meetingLink,
+                CanTakeAttendance = now >= mainLesson.ScheduleTime,
+                CanComplete = now >= endTime,
+                Students = groupLessons.Select(l =>
+                {
+                    var attendance = l.Attendances.FirstOrDefault();
+
+                    return new LessonStudentResponse
+                    {
+                        LessonId = l.LessonId,
+                        BookingId = l.BookingId,
+                        UserId = l.Booking.UserId ?? 0,
+                        StudentName = l.Booking.User?.Name ?? $"User #{l.Booking.UserId}",
+                        AttendanceStatus = attendance?.Status ?? "Not marked",
+                        LessonStatus = l.Status
+                    };
+                }).ToList()
+            };
+        }
     }
 }

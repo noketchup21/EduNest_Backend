@@ -11,5 +11,7 @@ namespace BusinessLayer.IServices
     {
         Task<BookingResponse> CreateBookingAsync(int userId, CreateBookingRequest request);
         Task<List<BookingResponse>> GetMyBookingsAsync(int userId);
+        Task<BookingResponse> CancelBookingAsync(int userId, int bookingId);
+        Task<int> ExpirePendingBookingsAsync();
     }
 }

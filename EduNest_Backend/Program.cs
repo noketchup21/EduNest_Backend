@@ -7,6 +7,7 @@ using BusinessLayer.Settings;
 using DataAccessLayer.Entities;
 using DataAccessLayer.IRepositories;
 using DataAccessLayer.Repositories;
+using EduNest_Backend.BackgroundServices;
 using EduNest_Backend.Middleware.RateLimit;
 using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -92,7 +93,10 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IPayoutService, PayoutService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 #endregion
+
+builder.Services.AddHostedService<BookingExpiryBackgroundService>();
 
 builder.Services.AddHttpClient();
 
