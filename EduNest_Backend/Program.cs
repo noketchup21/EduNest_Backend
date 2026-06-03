@@ -94,6 +94,7 @@ builder.Services.AddScoped<IPayoutService, PayoutService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 #endregion
 
 builder.Services.AddHostedService<BookingExpiryBackgroundService>();
