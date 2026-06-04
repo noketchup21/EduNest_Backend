@@ -33,6 +33,12 @@ namespace BusinessLayer.DTOs.Report
         public DateTime CreatedAt { get; set; }
         public DateTime? ReviewedAt { get; set; }
 
+        public string? TutorEmail { get; set; }
+        public string? TutorPhone { get; set; }
+        public bool? TutorIsActive { get; set; }
+        public bool? TutorIsVerified { get; set; }
+        public string? TutorVerificationStatus { get; set; }
+
         public List<TutorReportProofImageResponse> ProofImages { get; set; } = new();
     }
 
