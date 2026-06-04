@@ -237,6 +237,29 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(p => p.PayoutId == payoutId)
                 ?? throw new KeyNotFoundException("Payout not found.");
 
+            var bank = payout.Tutor.BankAccount;
+
+            var transferContent = $"PAYOUT{payout.PayoutId}";
+
+            var hasRequiredBankInfo =
+                bank != null &&
+                !string.IsNullOrWhiteSpace(bank.BankBin) &&
+                !string.IsNullOrWhiteSpace(bank.AccountNumber) &&
+                !string.IsNullOrWhiteSpace(bank.AccountHolderName);
+
+            var transferQrUrl = hasRequiredBankInfo
+                ? BuildVietQrUrl(
+                    bankBin: bank!.BankBin!,
+                    accountNumber: bank.AccountNumber,
+                    amount: payout.Amount,
+                    content: transferContent,
+                    accountName: bank.AccountHolderName)
+                : null;
+
+            var transferQrNote = hasRequiredBankInfo
+                ? "Scan this QR to transfer payout money to the tutor."
+                : "Enter the tutor bank BIN to enable quick money transfer QR.";
+
             return new AdminPayoutDetailResponse
             {
                 PayoutId = payout.PayoutId,
@@ -251,10 +274,15 @@ namespace BusinessLayer.Services
                 RequestedAt = payout.RequestedAt,
                 PaidAt = payout.PaidAt,
 
-                BankName = payout.Tutor.BankAccount?.BankName,
-                AccountNumber = payout.Tutor.BankAccount?.AccountNumber,
-                AccountHolderName = payout.Tutor.BankAccount?.AccountHolderName,
-                BranchName = payout.Tutor.BankAccount?.BranchName
+                BankName = bank?.BankName,
+                BankBin = bank?.BankBin,
+                AccountNumber = bank?.AccountNumber,
+                AccountHolderName = bank?.AccountHolderName,
+                BranchName = bank?.BranchName,
+
+                TransferContent = transferContent,
+                TransferQrUrl = transferQrUrl,
+                TransferQrNote = transferQrNote
             };
         }
 
@@ -355,6 +383,23 @@ namespace BusinessLayer.Services
                 return "Failed";
 
             throw new InvalidOperationException("Payout status must be Pending, Paid, or Failed.");
+        }
+
+        private static string BuildVietQrUrl(
+    string bankBin,
+    string accountNumber,
+    decimal amount,
+    string content,
+    string accountName)
+        {
+            var safeAmount = ((long)amount).ToString();
+            var safeContent = Uri.EscapeDataString(content);
+            var safeAccountName = Uri.EscapeDataString(accountName.ToUpperInvariant());
+
+            return $"https://img.vietqr.io/image/{bankBin}-{accountNumber}-compact2.png" +
+                   $"?amount={safeAmount}" +
+                   $"&addInfo={safeContent}" +
+                   $"&accountName={safeAccountName}";
         }
     }
 }
