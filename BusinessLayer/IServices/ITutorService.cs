@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BusinessLayer.DTOs.Profile;
 using BusinessLayer.DTOs.Tutor;
 
 namespace BusinessLayer.IServices
@@ -16,8 +17,5 @@ namespace BusinessLayer.IServices
         Task DeleteTutorAsync(int userId);
         Task<TutorVerificationResponse> GetMyVerificationAsync(int tutorUserId);
         Task<TutorVerificationResponse> SubmitTutorVerificationAsync(int tutorUserId,SubmitTutorVerificationRequest request);
-        Task<TutorBankAccountResponse> UpdateBankAccountAsync(
-    int tutorUserId,
-    UpdateTutorBankAccountRequest request);
     }
 }
