@@ -80,6 +80,9 @@ builder.Services.AddScoped<IPayoutRepository, PayoutRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IConversationUserRepository, ConversationUserRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ITutorReportRepository, TutorReportRepository>();
+builder.Services.AddScoped<IAdminTutorRepository, AdminTutorRepository>();
 //Service
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -99,6 +102,9 @@ builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ITutorReportRepository, TutorReportRepository>();
+builder.Services.AddScoped<IAdminTutorRepository, AdminTutorRepository>();
 #endregion
 
 builder.Services.AddHostedService<BookingExpiryBackgroundService>();
