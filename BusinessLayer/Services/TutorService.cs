@@ -212,11 +212,20 @@ namespace BusinessLayer.Services
                 tutor.BankAccount = bankAccount;
             }
 
-            bankAccount.BankName = request.BankName.Trim();
-            bankAccount.AccountNumber = request.AccountNumber.Trim();
-            bankAccount.AccountHolderName = request.AccountHolderName.Trim();
-            bankAccount.BranchName = request.BranchName?.Trim();
-            bankAccount.UpdatedAt = DateTime.UtcNow;
+            tutor.BankAccount.BankName = request.BankName.Trim();
+
+            tutor.BankAccount.BankBin = string.IsNullOrWhiteSpace(request.BankBin)
+                ? null
+                : request.BankBin.Trim();
+
+            tutor.BankAccount.AccountNumber = request.AccountNumber.Trim();
+            tutor.BankAccount.AccountHolderName = request.AccountHolderName.Trim();
+
+            tutor.BankAccount.BranchName = string.IsNullOrWhiteSpace(request.BranchName)
+                ? null
+                : request.BranchName.Trim();
+
+            tutor.BankAccount.UpdatedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
 
@@ -254,7 +263,7 @@ namespace BusinessLayer.Services
                 AccountNumber = tutor.BankAccount?.AccountNumber,
                 AccountHolderName = tutor.BankAccount?.AccountHolderName,
                 BranchName = tutor.BankAccount?.BranchName,
-
+                BankBin = tutor.BankAccount?.BankBin,
                 VerificationSubmittedAt = tutor.VerificationSubmittedAt,
                 VerificationReviewedAt = tutor.VerificationReviewedAt,
                 VerificationRejectReason = tutor.VerificationRejectReason
