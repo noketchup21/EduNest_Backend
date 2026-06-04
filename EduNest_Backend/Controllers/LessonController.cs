@@ -42,10 +42,17 @@ namespace EduNest_Backend.Controllers
             int lessonId,
             MarkAttendanceRequest request)
         {
-            return Ok(await _lessonService.MarkAttendanceAsync(
-                CurrentUserId(),
-                lessonId,
-                request));
+            try
+            {
+                return Ok(await _lessonService.MarkAttendanceAsync(
+                    CurrentUserId(),
+                    lessonId,
+                    request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [HttpPost("{lessonId:int}/complete")]
@@ -53,10 +60,17 @@ namespace EduNest_Backend.Controllers
             int lessonId,
             CompleteLessonRequest request)
         {
-            return Ok(await _lessonService.CompleteLessonAsync(
-                CurrentUserId(),
-                lessonId,
-                request));
+            try
+            {
+                return Ok(await _lessonService.CompleteLessonAsync(
+                    CurrentUserId(),
+                    lessonId,
+                    request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [Authorize]
@@ -82,9 +96,32 @@ namespace EduNest_Backend.Controllers
         [HttpPost("{lessonId:int}/complete-group")]
         public async Task<ActionResult<LessonDetailResponse>> CompleteLessonGroup(int lessonId)
         {
-            return Ok(await _lessonService.CompleteLessonGroupAsync(
-                CurrentUserId(),
-                lessonId));
+            try
+            {
+                return Ok(await _lessonService.CompleteLessonGroupAsync(
+                    CurrentUserId(),
+                    lessonId));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
+        private ActionResult HandleException(Exception ex)
+        {
+            return ex switch
+            {
+                KeyNotFoundException => NotFound(new { message = ex.Message }),
+
+                UnauthorizedAccessException => Forbid(),
+
+                InvalidOperationException => Conflict(new { message = ex.Message }),
+
+                ArgumentException => BadRequest(new { message = ex.Message }),
+
+                _ => StatusCode(500, new { message = "An unexpected error occurred." })
+            };
         }
 
         private int CurrentUserId()

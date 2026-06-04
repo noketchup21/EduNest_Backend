@@ -170,6 +170,8 @@ namespace BusinessLayer.Services
             int lessonId,
             CompleteLessonRequest request)
         {
+            var now = DateTime.UtcNow;
+
             var lesson = await _db.Lessons
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
@@ -191,8 +193,13 @@ namespace BusinessLayer.Services
 
             var endTime = lesson.ScheduleTime.AddMinutes(lesson.Duration);
 
-            if (DateTime.UtcNow < endTime)
-                throw new InvalidOperationException("Lesson cannot be completed before end time.");
+            if (now < lesson.ScheduleTime)
+                throw new InvalidOperationException(
+                    "Cannot complete this lesson before its scheduled time.");
+
+            if (now < endTime)
+                throw new InvalidOperationException(
+                    "Lesson cannot be completed before end time.");
 
             lesson.Status = "Completed";
 
