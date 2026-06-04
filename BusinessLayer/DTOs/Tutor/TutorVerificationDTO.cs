@@ -32,6 +32,9 @@ namespace BusinessLayer.DTOs.Tutor
         public string AccountHolderName { get; set; } = string.Empty;
 
         public string? BranchName { get; set; }
+
+        // Optional, used for VietQR quick payout transfer
+        public string? BankBin { get; set; }
     }
 
     public sealed class TutorVerificationResponse
@@ -60,6 +63,8 @@ namespace BusinessLayer.DTOs.Tutor
         public DateTime? VerificationSubmittedAt { get; set; }
         public DateTime? VerificationReviewedAt { get; set; }
         public string? VerificationRejectReason { get; set; }
+
+        public string? BankBin { get; set; }
     }
 
     public sealed class RejectTutorRequest
