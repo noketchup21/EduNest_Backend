@@ -23,10 +23,6 @@ namespace DataAccessLayer.Repositories
             int reporterUserId)
         {
             return await _db.Bookings
-                .Include(b => b.Parent)
-                    .ThenInclude(p => p.User)
-                .Include(b => b.Student)
-                    .ThenInclude(s => s.User)
                 .Include(b => b.Availability)
                     .ThenInclude(a => a.Subject)
                 .Include(b => b.Availability)
@@ -34,11 +30,8 @@ namespace DataAccessLayer.Repositories
                         .ThenInclude(t => t.User)
                 .FirstOrDefaultAsync(b =>
                     b.BookingId == bookingId &&
-                    !b.IsDeleted &&
-                    (
-                        b.Parent != null && b.Parent.UserId == reporterUserId ||
-                        b.Student != null && b.Student.UserId == reporterUserId
-                    ));
+                    b.UserId == reporterUserId &&
+                    !b.IsDeleted);
         }
 
         public async Task<bool> LessonBelongsToBookingAsync(
