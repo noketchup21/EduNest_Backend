@@ -26,21 +26,4 @@ namespace BusinessLayer.DTOs.Tutor
         public string? Phone { get; set; }
         public string? Name { get; set; }
     }
-
-    public sealed class UpdateTutorBankAccountRequest
-    {
-        [Required]
-        public string BankName { get; set; } = string.Empty;
-
-        // Optional. Used for VietQR quick payout transfer.
-        public string? BankBin { get; set; }
-
-        [Required]
-        public string AccountNumber { get; set; } = string.Empty;
-
-        [Required]
-        public string AccountHolderName { get; set; } = string.Empty;
-
-        public string? BranchName { get; set; }
-    }
 }

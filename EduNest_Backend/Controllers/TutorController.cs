@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using BusinessLayer.DTOs.Profile;
 using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
 using Microsoft.AspNetCore.Authorization;
