@@ -240,6 +240,58 @@ namespace BusinessLayer.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task<AvailabilityResponse> SetStatusAsync(
+    int tutorUserId,
+    int availabilityId,
+    string status)
+        {
+            var tutor = await GetTutorByUserIdAsync(tutorUserId);
+
+            var availability = await _db.Availabilities
+                .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
+                .Include(a => a.Subject)
+                .Include(a => a.Bookings)
+                .FirstOrDefaultAsync(a =>
+                    a.AvailabilityId == availabilityId &&
+                    a.TutorId == tutor.TutorId)
+                ?? throw new KeyNotFoundException("Availability not found.");
+
+            var normalizedStatus = NormalizeAvailabilityStatus(status);
+
+            if (HasActiveBooking(availability))
+            {
+                throw new InvalidOperationException(
+                    "This course already has booking activity and cannot be enabled or disabled.");
+            }
+
+            if (normalizedStatus == "Active")
+            {
+                await EnsureNoTutorAvailabilityConflictAsync(
+                    availability.TutorId,
+                    excludeAvailabilityId: availability.AvailabilityId,
+                    dayOfWeek: availability.DayOfWeek,
+                    startCourseTime: availability.StartCourseTime,
+                    endCourseTime: availability.EndCourseTime,
+                    startTime: availability.StartTime,
+                    endTime: availability.EndTime);
+            }
+
+            availability.Status = normalizedStatus;
+
+            await _db.SaveChangesAsync();
+
+            return ToResponse(availability);
+        }
+
+        private static bool HasActiveBooking(Availability availability)
+        {
+            return availability.Bookings.Any(b =>
+                !b.IsDeleted &&
+                b.Status != "Cancelled" &&
+                b.Status != "Expired");
+        }
+
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)
         {
             return await _db.Tutors
@@ -297,10 +349,11 @@ namespace BusinessLayer.Services
 
         private static AvailabilityResponse ToResponse(Availability a)
         {
+            var hasBookings = HasActiveBooking(a);
+
             return new AvailabilityResponse
             {
                 AvailabilityId = a.AvailabilityId,
-
                 TutorId = a.TutorId,
                 TutorUserId = a.Tutor?.UserId ?? 0,
                 TutorName = a.Tutor?.User?.Name ?? $"Tutor #{a.TutorId}",
@@ -320,7 +373,9 @@ namespace BusinessLayer.Services
 
                 Status = a.Status,
                 Mode = a.Mode,
-                Level = a.Level
+                Level = a.Level,
+
+                HasBookings = hasBookings
             };
         }
 

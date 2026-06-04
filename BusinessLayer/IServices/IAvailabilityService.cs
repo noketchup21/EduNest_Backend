@@ -15,5 +15,9 @@ namespace BusinessLayer.IServices
         Task<AvailabilityResponse> CreateAsync(int tutorUserId, CreateAvailabilityRequest request);
         Task<AvailabilityResponse> UpdateAsync(int tutorUserId, int availabilityId, UpdateAvailabilityRequest request);
         Task DeleteAsync(int tutorUserId, int availabilityId);
+        Task<AvailabilityResponse> SetStatusAsync(
+    int tutorUserId,
+    int availabilityId,
+    string status);
     }
 }

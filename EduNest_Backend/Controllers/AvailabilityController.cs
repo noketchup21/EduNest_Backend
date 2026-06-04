@@ -65,6 +65,18 @@ namespace EduNest_Backend.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "Tutor")]
+        [HttpPatch("{availabilityId:int}/status")]
+        public async Task<ActionResult<AvailabilityResponse>> SetStatus(
+    int availabilityId,
+    [FromBody] UpdateAvailabilityStatusRequest request)
+        {
+            return Ok(await _availabilityService.SetStatusAsync(
+                CurrentUserId(),
+                availabilityId,
+                request.Status));
+        }
+
         private int CurrentUserId()
         {
             var raw = User.FindFirstValue(ClaimTypes.NameIdentifier)
