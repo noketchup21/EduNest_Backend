@@ -66,8 +66,13 @@ namespace BusinessLayer.DTOs.Admin
         public DateTime? PaidAt { get; set; }
 
         public string? BankName { get; set; }
+        public string? BankBin { get; set; }
         public string? AccountNumber { get; set; }
         public string? AccountHolderName { get; set; }
         public string? BranchName { get; set; }
+
+        public string TransferContent { get; set; } = string.Empty;
+        public string? TransferQrUrl { get; set; }
+        public string? TransferQrNote { get; set; }
     }
 }

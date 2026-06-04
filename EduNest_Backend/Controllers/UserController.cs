@@ -1,5 +1,6 @@
 ﻿using BusinessLayer.DTOs.User;
 using BusinessLayer.IServices;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -103,6 +104,5 @@ namespace EduNest_Backend.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred." });
             }
         }
-
     }
 }

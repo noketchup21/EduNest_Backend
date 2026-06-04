@@ -16,5 +16,8 @@ namespace BusinessLayer.IServices
         Task DeleteTutorAsync(int userId);
         Task<TutorVerificationResponse> GetMyVerificationAsync(int tutorUserId);
         Task<TutorVerificationResponse> SubmitTutorVerificationAsync(int tutorUserId,SubmitTutorVerificationRequest request);
+        Task<TutorBankAccountResponse> UpdateBankAccountAsync(
+    int tutorUserId,
+    UpdateTutorBankAccountRequest request);
     }
 }
