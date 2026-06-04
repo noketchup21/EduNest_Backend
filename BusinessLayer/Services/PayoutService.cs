@@ -13,6 +13,7 @@ namespace BusinessLayer.Services
     public sealed class PayoutService : IPayoutService
     {
         private readonly EduNestDbContext _db;
+        private const decimal MinimumPayoutAmount = 10000m;
 
         public PayoutService(EduNestDbContext db)
         {
@@ -23,11 +24,21 @@ namespace BusinessLayer.Services
             int tutorUserId,
             RequestPayoutRequest request)
         {
+            if (request.Amount < MinimumPayoutAmount)
+            {
+                throw new InvalidOperationException(
+                    "Minimum payout amount is 10,000 VND.");
+            }
+
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
             var wallet = await EnsureWalletAsync(tutor.TutorId);
 
             if (wallet.Balance < request.Amount)
+            {
                 throw new InvalidOperationException("Not enough wallet balance.");
+            }
+
+            await using var transaction = await _db.Database.BeginTransactionAsync();
 
             wallet.Balance -= request.Amount;
             wallet.PendingBalance += request.Amount;
@@ -55,6 +66,8 @@ namespace BusinessLayer.Services
 
             _db.Payouts.Add(payout);
             await _db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
 
             return ToPayoutResponse(payout);
         }

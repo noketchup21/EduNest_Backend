@@ -290,18 +290,58 @@ namespace BusinessLayer.Services
             int payoutId,
             string status)
         {
+            var normalizedStatus = NormalizeFinalPayoutStatus(status);
+
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+
             var payout = await _db.Payouts
+                .Include(p => p.Tutor)
+                    .ThenInclude(t => t.Wallet)
                 .FirstOrDefaultAsync(p => p.PayoutId == payoutId)
                 ?? throw new KeyNotFoundException("Payout not found.");
 
-            payout.Status = NormalizePayoutStatus(status);
-
-            if (payout.Status == "Paid")
+            if (payout.Status != "Pending")
             {
+                throw new InvalidOperationException(
+                    $"This payout is already {payout.Status} and cannot be updated again.");
+            }
+
+            var wallet = payout.Tutor.Wallet
+                ?? throw new InvalidOperationException("Tutor wallet not found.");
+
+            if (normalizedStatus == "Paid")
+            {
+                payout.Status = "Paid";
                 payout.PaidAt = DateTime.UtcNow;
+
+                _db.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.WalletId,
+                    Type = "PayoutPaid",
+                    Amount = payout.Amount,
+                    Description = $"Payout #{payout.PayoutId} was paid by admin.",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else if (normalizedStatus == "Failed")
+            {
+                payout.Status = "Failed";
+                payout.PaidAt = null;
+
+                wallet.Balance += payout.Amount;
+
+                _db.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.WalletId,
+                    Type = "Refund",
+                    Amount = payout.Amount,
+                    Description = $"Payout #{payout.PayoutId} failed. Amount returned to tutor wallet.",
+                    CreatedAt = DateTime.UtcNow
+                });
             }
 
             await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
 
             return ToPayoutResponse(payout);
         }
@@ -346,6 +386,7 @@ namespace BusinessLayer.Services
                     : _cloudinaryService.GenerateSignedImageUrl(tutor.CertificatePublicId),
 
                 BankName = tutor.BankAccount?.BankName,
+                BankBin = tutor.BankAccount?.BankBin,
                 AccountNumber = tutor.BankAccount?.AccountNumber,
                 AccountHolderName = tutor.BankAccount?.AccountHolderName,
                 BranchName = tutor.BankAccount?.BranchName,
@@ -369,12 +410,9 @@ namespace BusinessLayer.Services
             };
         }
 
-        private static string NormalizePayoutStatus(string value)
+        private static string NormalizeFinalPayoutStatus(string value)
         {
             var status = value.Trim();
-
-            if (status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
-                return "Pending";
 
             if (status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
                 return "Paid";
@@ -382,7 +420,7 @@ namespace BusinessLayer.Services
             if (status.Equals("Failed", StringComparison.OrdinalIgnoreCase))
                 return "Failed";
 
-            throw new InvalidOperationException("Payout status must be Pending, Paid, or Failed.");
+            throw new InvalidOperationException("Payout status must be Paid or Failed.");
         }
 
         private static string BuildVietQrUrl(
