@@ -105,7 +105,7 @@ namespace BusinessLayer.Services
             var reports = await _reportRepository.GetReportsByReporterAsync(
                 reporterUserId);
 
-            return reports.Select(ToResponse).ToList();
+            return reports.Select(r => ToResponse(r, false)).ToList();
         }
 
         public async Task<List<TutorReportResponse>> AdminGetReportsAsync(
@@ -118,7 +118,7 @@ namespace BusinessLayer.Services
             var reports = await _reportRepository.GetReportsForAdminAsync(
                 normalizedStatus);
 
-            return reports.Select(ToResponse).ToList();
+            return reports.Select(r => ToResponse(r, true)).ToList();
         }
 
         public async Task<TutorReportResponse> AdminGetReportAsync(int reportId)
@@ -126,7 +126,7 @@ namespace BusinessLayer.Services
             var report = await _reportRepository.GetReportByIdAsync(reportId)
                 ?? throw new KeyNotFoundException("Report not found.");
 
-            return ToResponse(report);
+            return ToResponse(report, true);
         }
 
         public async Task<TutorReportResponse> AdminUpdateReportStatusAsync(
@@ -209,7 +209,9 @@ namespace BusinessLayer.Services
             }
         }
 
-        private TutorReportResponse ToResponse(TutorReport report)
+        private TutorReportResponse ToResponse(
+            TutorReport report,
+            bool includeAdminTutorInfo = false)
         {
             return new TutorReportResponse
             {
@@ -223,6 +225,26 @@ namespace BusinessLayer.Services
                 TutorUserId = report.Tutor?.UserId ?? 0,
                 TutorName = report.Tutor?.User?.Name
                     ?? $"Tutor #{report.TutorId}",
+
+                TutorEmail = includeAdminTutorInfo
+                    ? report.Tutor?.User?.Email
+                    : null,
+
+                TutorPhone = includeAdminTutorInfo
+                    ? report.Tutor?.User?.Phone
+                    : null,
+
+                TutorIsActive = includeAdminTutorInfo
+                    ? report.Tutor?.User?.IsActive == true
+                    : null,
+
+                TutorIsVerified = includeAdminTutorInfo
+                    ? report.Tutor?.IsVerified == true
+                    : null,
+
+                TutorVerificationStatus = includeAdminTutorInfo
+                    ? report.Tutor?.VerificationStatus
+                    : null,
 
                 BookingId = report.BookingId,
                 AvailabilityId = report.AvailabilityId,
