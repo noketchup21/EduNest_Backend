@@ -27,6 +27,7 @@ namespace BusinessLayer.DTOs.Availability
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
         public string? SubjectName { get; set; }
+        public bool HasBookings { get; set; }
     }
 
     public sealed class CreateAvailabilityRequest
@@ -71,5 +72,10 @@ namespace BusinessLayer.DTOs.Availability
         public string? Status { get; set; }
         public string? Mode { get; set; }
         public string? Level { get; set; }
+    }
+
+    public sealed class UpdateAvailabilityStatusRequest
+    {
+        public string Status { get; set; } = string.Empty;
     }
 }
