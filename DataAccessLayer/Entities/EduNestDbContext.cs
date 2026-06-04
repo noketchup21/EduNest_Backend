@@ -51,9 +51,12 @@ namespace DataAccessLayer.Entities
 
         // ── Parent Extras ─────────────────────────────────────────────────────
         public DbSet<FavoriteTutor> FavoriteTutors { get; set; }
-
-        //metri
+        
+        //metric
         public DbSet<AppMetric> AppMetrics { get; set; }
+
+        public DbSet<TutorReport> TutorReports { get; set; }
+        public DbSet<TutorReportProofImage> TutorReportProofImages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -383,6 +386,43 @@ namespace DataAccessLayer.Entities
                 .HasIndex(f => new { f.ParentId, f.TutorId })
                 .IsUnique();
 
+            // ── TutorReport ─────────────────────────────────────────────────
+            modelBuilder.Entity<TutorReport>()
+                .HasOne(r => r.ReporterUser)
+                .WithMany()
+                .HasForeignKey(r => r.ReporterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TutorReport>()
+                .HasOne(r => r.Tutor)
+                .WithMany()
+                .HasForeignKey(r => r.TutorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TutorReport>()
+                .HasOne(r => r.Booking)
+                .WithMany()
+                .HasForeignKey(r => r.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TutorReport>()
+                .HasOne(r => r.Availability)
+                .WithMany()
+                .HasForeignKey(r => r.AvailabilityId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TutorReport>()
+                .HasOne(r => r.Lesson)
+                .WithMany()
+                .HasForeignKey(r => r.LessonId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<TutorReportProofImage>()
+                .HasOne(p => p.TutorReport)
+                .WithMany(r => r.ProofImages)
+                .HasForeignKey(p => p.TutorReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ── Indexes ───────────────────────────────────────────────────────
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
@@ -396,6 +436,15 @@ namespace DataAccessLayer.Entities
 
             modelBuilder.Entity<AppMetric>()
     .HasIndex(x => new { x.Type, x.DeviceId });
+
+            modelBuilder.Entity<TutorReport>()
+    .HasIndex(r => new { r.ReporterUserId, r.BookingId });
+
+            modelBuilder.Entity<TutorReport>()
+                .HasIndex(r => new { r.TutorId, r.Status });
+
+            modelBuilder.Entity<TutorReport>()
+                .HasIndex(r => r.CreatedAt);
 
             // ── PostgreSQL lowercase naming ───────────────────────────────────  ← ADD HERE
             foreach (var entity in modelBuilder.Model.GetEntityTypes())
