@@ -123,5 +123,16 @@ namespace EduNest_Backend.Controllers
         {
             return Ok(await _adminService.GetTutorsAsync());
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("tutor/{tutorId:int}/account-status")]
+        public async Task<ActionResult<TutorVerificationResponse>> UpdateTutorAccountStatus(
+    int tutorId,
+    [FromBody] UpdateTutorAccountStatusRequest request)
+        {
+            return Ok(await _adminService.UpdateTutorAccountStatusAsync(
+                tutorId,
+                request.IsActive));
+        }
     }
 }

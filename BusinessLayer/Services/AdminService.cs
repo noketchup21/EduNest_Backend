@@ -9,6 +9,7 @@ using BusinessLayer.DTOs.Subject;
 using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
+using DataAccessLayer.IRepositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLayer.Services
@@ -17,13 +18,15 @@ namespace BusinessLayer.Services
     {
         private readonly EduNestDbContext _db;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IAdminTutorRepository _adminTutorRepository;
 
         public AdminService(
             EduNestDbContext db,
-            ICloudinaryService cloudinaryService)
+            ICloudinaryService cloudinaryService, IAdminTutorRepository adminTutorRepository)
         {
             _db = db;
             _cloudinaryService = cloudinaryService;
+            _adminTutorRepository = adminTutorRepository;
         }
 
         public async Task TrackDownloadAsync(TrackAppMetricRequest request)
@@ -309,6 +312,8 @@ namespace BusinessLayer.Services
             var wallet = payout.Tutor.Wallet
                 ?? throw new InvalidOperationException("Tutor wallet not found.");
 
+            wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - payout.Amount);
+
             if (normalizedStatus == "Paid")
             {
                 payout.Status = "Paid";
@@ -358,6 +363,25 @@ namespace BusinessLayer.Services
             return tutors.Select(ToTutorVerificationResponse).ToList();
         }
 
+        public async Task<TutorVerificationResponse> UpdateTutorAccountStatusAsync(
+    int tutorId,
+    bool isActive)
+        {
+            var tutor = await _adminTutorRepository.GetTutorWithUserAndBankAsync(tutorId)
+                ?? throw new KeyNotFoundException("Tutor not found.");
+
+            if (tutor.User == null)
+            {
+                throw new KeyNotFoundException("Tutor user account not found.");
+            }
+
+            tutor.User.IsActive = isActive;
+
+            await _adminTutorRepository.SaveChangesAsync();
+
+            return ToTutorVerificationResponse(tutor);
+        }
+
         private TutorVerificationResponse ToTutorVerificationResponse(Tutor tutor)
         {
             return new TutorVerificationResponse
@@ -367,6 +391,8 @@ namespace BusinessLayer.Services
 
                 TutorName = tutor.User?.Name ?? $"Tutor #{tutor.TutorId}",
                 Email = tutor.User?.Email ?? string.Empty,
+
+                IsActive = tutor.User?.IsActive == true,
 
                 IsVerified = tutor.IsVerified,
                 VerificationStatus = tutor.VerificationStatus,
@@ -393,7 +419,7 @@ namespace BusinessLayer.Services
 
                 VerificationSubmittedAt = tutor.VerificationSubmittedAt,
                 VerificationReviewedAt = tutor.VerificationReviewedAt,
-                VerificationRejectReason = tutor.VerificationRejectReason
+                VerificationRejectReason = tutor.VerificationRejectReason,
             };
         }
 

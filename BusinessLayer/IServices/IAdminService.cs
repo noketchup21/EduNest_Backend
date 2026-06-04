@@ -30,5 +30,9 @@ namespace BusinessLayer.IServices
         Task<PayoutResponse> UpdatePayoutStatusAsync(int payoutId, string status);
 
         Task<List<TutorVerificationResponse>> GetTutorsAsync();
+
+        Task<TutorVerificationResponse> UpdateTutorAccountStatusAsync(
+    int tutorId,
+    bool isActive);
     }
 }

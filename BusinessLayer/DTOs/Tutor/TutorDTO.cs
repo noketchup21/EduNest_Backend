@@ -26,4 +26,9 @@ namespace BusinessLayer.DTOs.Tutor
         public string? Phone { get; set; }
         public string? Name { get; set; }
     }
+
+    public sealed class UpdateTutorAccountStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
 }
