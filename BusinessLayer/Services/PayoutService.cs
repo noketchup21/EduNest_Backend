@@ -101,7 +101,7 @@ namespace BusinessLayer.Services
 
             var wallet = payout.Tutor.Wallet ?? await EnsureWalletAsync(payout.TutorId);
 
-            wallet.PendingBalance -= payout.Amount;
+            wallet.PendingBalance = Math.Max(0, wallet.PendingBalance - payout.Amount);
 
             if (request.Status == "Failed")
                 wallet.Balance += payout.Amount;
