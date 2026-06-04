@@ -28,5 +28,7 @@ namespace BusinessLayer.IServices
         Task<List<PayoutResponse>> GetPayoutsAsync();
         Task<AdminPayoutDetailResponse> GetPayoutDetailAsync(int payoutId);
         Task<PayoutResponse> UpdatePayoutStatusAsync(int payoutId, string status);
+
+        Task<List<TutorVerificationResponse>> GetTutorsAsync();
     }
 }

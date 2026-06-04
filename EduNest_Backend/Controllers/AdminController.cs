@@ -112,5 +112,12 @@ namespace EduNest_Backend.Controllers
                 payoutId,
                 request.Status));
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("tutor")]
+        public async Task<ActionResult<List<TutorVerificationResponse>>> GetTutors()
+        {
+            return Ok(await _adminService.GetTutorsAsync());
+        }
     }
 }

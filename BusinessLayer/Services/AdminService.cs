@@ -278,6 +278,18 @@ namespace BusinessLayer.Services
             return ToPayoutResponse(payout);
         }
 
+        public async Task<List<TutorVerificationResponse>> GetTutorsAsync()
+        {
+            var tutors = await _db.Tutors
+                .Include(t => t.User)
+                .Include(t => t.BankAccount)
+                .OrderByDescending(t => t.VerificationSubmittedAt)
+                .ThenByDescending(t => t.TutorId)
+                .ToListAsync();
+
+            return tutors.Select(ToTutorVerificationResponse).ToList();
+        }
+
         private TutorVerificationResponse ToTutorVerificationResponse(Tutor tutor)
         {
             return new TutorVerificationResponse
