@@ -3,6 +3,7 @@ using BusinessLayer.DTOs.Payment;
 using BusinessLayer.DTOs.Subject;
 using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
+using BusinessLayer.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,13 @@ namespace EduNest_Backend.Controllers
     public sealed class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
+        private readonly IPayoutService _payoutService;
 
-        public AdminController(IAdminService adminService)
+
+        public AdminController(IAdminService adminService, IPayoutService payoutService)
         {
             _adminService = adminService;
+            _payoutService = payoutService;
         }
 
         [AllowAnonymous]
@@ -108,9 +112,9 @@ namespace EduNest_Backend.Controllers
             int payoutId,
             [FromBody] AdminUpdatePayoutRequest request)
         {
-            return Ok(await _adminService.UpdatePayoutStatusAsync(
+            return Ok(await _payoutService.AdminUpdatePayoutAsync(
                 payoutId,
-                request.Status));
+                request));
         }
 
         [Authorize(Roles = "Admin")]
