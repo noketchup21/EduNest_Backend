@@ -116,6 +116,8 @@ namespace BusinessLayer.Services
             MarkAttendanceRequest request)
         {
             var lesson = await _db.Lessons
+                    .Include(l => l.Booking)
+        .ThenInclude(b => b.User)
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
                         .ThenInclude(a => a.Tutor)
@@ -138,16 +140,22 @@ namespace BusinessLayer.Services
             if (lesson.Status == "Completed")
                 throw new InvalidOperationException("Cannot update attendance after lesson is completed.");
 
-            var normalizedStatus = NormalizeAttendanceStatus(request.Status);
 
+            var normalizedStatus = NormalizeAttendanceStatus(request.Status);
             var attendance = lesson.Attendances.FirstOrDefault();
 
             if (attendance == null)
             {
+                // Resolve the Student record from the booking's UserId
+                var student = await _db.Students
+                    .FirstOrDefaultAsync(s => s.UserId == lesson.Booking.UserId)
+                    ?? throw new InvalidOperationException(
+                        $"No student profile found for user #{lesson.Booking.UserId}.");
+
                 attendance = new Attendance
                 {
                     LessonId = lesson.LessonId,
-                    StudentId = lesson.Booking.StudentId ?? 0,
+                    StudentId = student.StudentId,
                     CreatedAt = DateTime.UtcNow
                 };
 
