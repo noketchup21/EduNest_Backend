@@ -14,6 +14,7 @@ namespace BusinessLayer.DTOs.Lesson
         public int TutorId { get; set; }
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
+        public string? TutorAvatarUrl { get; set; }
 
         public int? SubjectId { get; set; }
         public string? SubjectName { get; set; }
@@ -54,6 +55,7 @@ namespace BusinessLayer.DTOs.Lesson
         public int TutorId { get; set; }
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
+        public string? TutorAvatarUrl { get; set; }
 
         public int? SubjectId { get; set; }
         public string? SubjectName { get; set; }

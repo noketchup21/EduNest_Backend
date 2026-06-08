@@ -26,6 +26,7 @@ namespace BusinessLayer.DTOs.Availability
         public string Level { get; set; } = string.Empty;
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
+        public string? TutorAvatarUrl { get; set; }
         public string? SubjectName { get; set; }
         public bool HasBookings { get; set; }
     }

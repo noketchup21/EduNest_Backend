@@ -13,10 +13,12 @@ namespace BusinessLayer.Services
     public sealed class ChatService : IChatService
     {
         private readonly EduNestDbContext _db;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public ChatService(EduNestDbContext db)
+        public ChatService(EduNestDbContext db, ICloudinaryService cloudinaryService)
         {
             _db = db;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<ConversationResponse> StartConversationAsync(
@@ -40,7 +42,7 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync();
 
             if (existing != null)
-                return ToConversationResponse(existing);
+                return ToConversationResponse(existing, userId);
 
             var conversation = new Conversation
             {
@@ -62,13 +64,14 @@ namespace BusinessLayer.Services
             _db.Conversations.Add(conversation);
             await _db.SaveChangesAsync();
 
-            return ToConversationResponse(conversation);
+            return ToConversationResponse(conversation, userId);
         }
 
         public async Task<List<ConversationResponse>> GetMyConversationsAsync(int userId)
         {
             var conversations = await _db.Conversations
                 .Include(c => c.ConversationUsers)
+                    .ThenInclude(cu => cu.User)
                 .Where(c =>
                     c.ConversationUsers.Any(cu => cu.UserId == userId) &&
                     c.IsActive)
@@ -85,6 +88,7 @@ namespace BusinessLayer.Services
         {
             var conversation = await _db.Conversations
                 .Include(c => c.ConversationUsers)
+                    .ThenInclude(cu => cu.User)
                 .FirstOrDefaultAsync(c =>
                     c.ConversationId == conversationId &&
                     c.IsActive)
@@ -130,13 +134,27 @@ namespace BusinessLayer.Services
                 .ToListAsync();
         }
 
-        private static ConversationResponse ToConversationResponse(Conversation c) => new()
+        private ConversationResponse ToConversationResponse(
+            Conversation c,
+            int currentUserId)
         {
-            ConversationId = c.ConversationId,
-            LastMessageAt = c.LastMessageAt,
-            IsActive = c.IsActive,
-            UserIds = c.ConversationUsers.Select(cu => cu.UserId).ToList()
-        };
+            var otherUser = c.ConversationUsers
+                .Select(cu => cu.User)
+                .FirstOrDefault(u => u.UserId != currentUserId);
+
+            return new ConversationResponse
+            {
+                ConversationId = c.ConversationId,
+                LastMessageAt = c.LastMessageAt,
+                IsActive = c.IsActive,
+                UserIds = c.ConversationUsers.Select(cu => cu.UserId).ToList(),
+
+                OtherUserId = otherUser?.UserId ?? 0,
+                OtherUserName = otherUser?.Name ?? "User",
+                OtherUserRole = otherUser?.Role ?? "",
+                OtherUserAvatarUrl = AvatarUrl(otherUser)
+            };
+        }
 
         private static MessageResponse ToMessageResponse(Message m) => new()
         {
@@ -147,5 +165,16 @@ namespace BusinessLayer.Services
             IsRead = m.IsRead,
             CreatedAt = m.CreatedAt
         };
+
+        private string? AvatarUrl(User? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.AvatarPublicId))
+                return null;
+
+            return _cloudinaryService.GenerateSignedImageUrl(
+                user.AvatarPublicId,
+                300,
+                300);
+        }
     }
 }
