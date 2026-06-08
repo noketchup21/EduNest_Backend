@@ -273,6 +273,23 @@ namespace BusinessLayer.Services
             };
         }
 
+        public async Task<List<TutorReportResponse>> TutorGetReportsAsync(
+    int tutorUserId,
+    string? status)
+        {
+            var normalizedStatus = string.IsNullOrWhiteSpace(status)
+                ? null
+                : NormalizeReportStatus(status);
+
+            var reports = await _reportRepository.GetReportsForTutorAsync(
+                tutorUserId,
+                normalizedStatus);
+
+            return reports
+                .Select(r => ToResponse(r, false))
+                .ToList();
+        }
+
         private static string NormalizeReportStatus(string status)
         {
             if (string.IsNullOrWhiteSpace(status))

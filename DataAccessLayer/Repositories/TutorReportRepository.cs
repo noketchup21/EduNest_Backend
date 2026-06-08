@@ -89,6 +89,23 @@ namespace DataAccessLayer.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<TutorReport>> GetReportsForTutorAsync(
+    int tutorUserId,
+    string? status)
+        {
+            var query = BaseReportQuery()
+                .Where(r => r.Tutor.UserId == tutorUserId);
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(r => r.Status == status);
+            }
+
+            return await query
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task SaveChangesAsync()
         {
             await _db.SaveChangesAsync();
