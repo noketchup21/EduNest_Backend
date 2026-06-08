@@ -8,10 +8,14 @@ namespace BusinessLayer.Services
     public sealed class AvailabilityService : IAvailabilityService
     {
         private readonly EduNestDbContext _db;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public AvailabilityService(EduNestDbContext db)
+        public AvailabilityService(
+            EduNestDbContext db,
+            ICloudinaryService cloudinaryService)
         {
             _db = db;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<List<AvailabilityResponse>> GetAllAsync()
@@ -347,7 +351,7 @@ namespace BusinessLayer.Services
             }
         }
 
-        private static AvailabilityResponse ToResponse(Availability a)
+        private AvailabilityResponse ToResponse(Availability a)
         {
             var hasBookings = HasActiveBooking(a);
 
@@ -357,6 +361,7 @@ namespace BusinessLayer.Services
                 TutorId = a.TutorId,
                 TutorUserId = a.Tutor?.UserId ?? 0,
                 TutorName = a.Tutor?.User?.Name ?? $"Tutor #{a.TutorId}",
+                TutorAvatarUrl = AvatarUrl(a.Tutor?.User),
 
                 SubjectId = a.SubjectId,
                 SubjectName = a.Subject?.Name,
@@ -465,6 +470,17 @@ namespace BusinessLayer.Services
                 return "Inactive";
 
             throw new InvalidOperationException("Availability status must be Active or Inactive.");
+        }
+
+        private string? AvatarUrl(User? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.AvatarPublicId))
+                return null;
+
+            return _cloudinaryService.GenerateSignedImageUrl(
+                user.AvatarPublicId,
+                300,
+                300);
         }
     }
 }

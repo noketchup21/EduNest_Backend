@@ -10,11 +10,16 @@ namespace BusinessLayer.Services
     {
         private readonly EduNestDbContext _db;
         private readonly IWalletService _walletService;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public LessonService(EduNestDbContext db, IWalletService walletService)
+        public LessonService(
+            EduNestDbContext db,
+            IWalletService walletService,
+            ICloudinaryService cloudinaryService)
         {
             _db = db;
             _walletService = walletService;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<List<LessonResponse>> GetMyLessonsAsync(int userId)
@@ -36,10 +41,13 @@ namespace BusinessLayer.Services
                 ? query.Where(l => l.Booking.Availability.TutorId == tutor.TutorId)
                 : query.Where(l => l.Booking.UserId == userId);
 
-            return await query
-                .OrderBy(l => l.ScheduleTime)
-                .Select(l => ToLessonResponse(l))
-                .ToListAsync();
+            var lessons = await query
+              .OrderBy(l => l.ScheduleTime)
+              .ToListAsync();
+
+            return lessons
+                .Select(ToLessonResponse)
+                .ToList();
         }
 
         public async Task<LessonResponse> AddLessonAsync(
@@ -64,7 +72,17 @@ namespace BusinessLayer.Services
             _db.Lessons.Add(lesson);
             await _db.SaveChangesAsync();
 
-            return ToLessonResponse(lesson);
+            var createdLesson = await _db.Lessons
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
+                .FirstAsync(l => l.LessonId == lesson.LessonId);
+
+            return ToLessonResponse(createdLesson);
         }
 
         public async Task<LessonDetailResponse> GetLessonDetailAsync(
@@ -376,9 +394,11 @@ namespace BusinessLayer.Services
             throw new InvalidOperationException("Attendance status must be Present, Absent, or Late.");
         }
 
-        private static LessonResponse ToLessonResponse(Lesson lesson)
+        private LessonResponse ToLessonResponse(Lesson lesson)
         {
             var availability = lesson.Booking.Availability;
+            var tutor = availability.Tutor;
+            var tutorUser = tutor?.User;
 
             return new LessonResponse
             {
@@ -388,8 +408,9 @@ namespace BusinessLayer.Services
                 AvailabilityId = availability.AvailabilityId,
 
                 TutorId = availability.TutorId,
-                TutorUserId = availability.Tutor?.UserId ?? 0,
-                TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
+                TutorUserId = tutor?.UserId ?? 0,
+                TutorName = tutorUser?.Name ?? $"Tutor #{availability.TutorId}",
+                TutorAvatarUrl = AvatarUrl(tutorUser),
 
                 SubjectId = availability.SubjectId,
                 SubjectName = availability.Subject?.Name,
@@ -401,13 +422,16 @@ namespace BusinessLayer.Services
             };
         }
 
-        private static LessonDetailResponse ToLessonDetailResponse(
+        private LessonDetailResponse ToLessonDetailResponse(
             Lesson mainLesson,
             Availability availability,
             List<Lesson> groupLessons)
         {
             var now = DateTime.UtcNow;
             var endTime = mainLesson.ScheduleTime.AddMinutes(mainLesson.Duration);
+
+            var tutor = availability.Tutor;
+            var tutorUser = tutor?.User;
 
             var meetingLink = groupLessons
                 .Select(l => l.MeetingLink)
@@ -419,8 +443,9 @@ namespace BusinessLayer.Services
                 AvailabilityId = availability.AvailabilityId,
 
                 TutorId = availability.TutorId,
-                TutorUserId = availability.Tutor?.UserId ?? 0,
-                TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
+                TutorUserId = tutor?.UserId ?? 0,
+                TutorName = tutorUser?.Name ?? $"Tutor #{availability.TutorId}",
+                TutorAvatarUrl = AvatarUrl(tutorUser),
 
                 SubjectId = availability.SubjectId,
                 SubjectName = availability.Subject?.Name,
@@ -448,6 +473,17 @@ namespace BusinessLayer.Services
                     };
                 }).ToList()
             };
+        }
+
+        private string? AvatarUrl(User? user)
+        {
+            if (user == null || string.IsNullOrWhiteSpace(user.AvatarPublicId))
+                return null;
+
+            return _cloudinaryService.GenerateSignedImageUrl(
+                user.AvatarPublicId,
+                300,
+                300);
         }
     }
 }

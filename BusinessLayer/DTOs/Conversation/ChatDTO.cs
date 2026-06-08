@@ -25,6 +25,10 @@ namespace BusinessLayer.DTOs.Conversation
         public DateTime LastMessageAt { get; set; }
         public bool IsActive { get; set; }
         public List<int> UserIds { get; set; } = new();
+        public int OtherUserId { get; set; }
+        public string OtherUserName { get; set; } = string.Empty;
+        public string OtherUserRole { get; set; } = string.Empty;
+        public string? OtherUserAvatarUrl { get; set; }
     }
 
     public sealed class MessageResponse
