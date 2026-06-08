@@ -25,8 +25,8 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(150)]
         public string AccountHolderName { get; set; } = string.Empty;
 
-        [MaxLength(20)]
-        public string? BankBin { get; set; }
+        [Required]
+        public string BankBin { get; set; } = string.Empty;
 
         [MaxLength(150)]
         public string? BranchName { get; set; }

@@ -214,9 +214,12 @@ namespace BusinessLayer.Services
 
             tutor.BankAccount.BankName = request.BankName.Trim();
 
-            tutor.BankAccount.BankBin = string.IsNullOrWhiteSpace(request.BankBin)
-                ? null
-                : request.BankBin.Trim();
+            if (string.IsNullOrWhiteSpace(request.BankBin))
+            {
+                throw new InvalidOperationException("Bank BIN is required.");
+            }
+
+            tutor.BankAccount.BankBin = request.BankBin.Trim();
 
             tutor.BankAccount.AccountNumber = request.AccountNumber.Trim();
             tutor.BankAccount.AccountHolderName = request.AccountHolderName.Trim();
