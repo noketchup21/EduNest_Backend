@@ -92,5 +92,18 @@ namespace BusinessLayer.Services
                         .FetchFormat("auto"))
                 .BuildUrl(publicId);
         }
+
+        public async Task DeleteImageAsync(string publicId)
+        {
+            if (string.IsNullOrWhiteSpace(publicId)) return;
+
+            var deletionParams = new DeletionParams(publicId)
+            {
+                ResourceType = ResourceType.Image,
+                Type = "authenticated"
+            };
+
+            await _cloudinary.DestroyAsync(deletionParams);
+        }
     }
 }

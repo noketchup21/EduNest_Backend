@@ -31,6 +31,8 @@ namespace DataAccessLayer.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public string? AvatarPublicId { get; set; }
+
         public bool IsDeleted { get; set; } = false;
 
         public bool IsActive { get; set; } = false;

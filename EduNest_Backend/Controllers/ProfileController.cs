@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using BusinessLayer.DTOs.Profile;
+using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,10 +15,12 @@ namespace EduNest_Backend.Controllers
     public sealed class ProfileController : ControllerBase
     {
         private readonly EduNestDbContext _db;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public ProfileController(EduNestDbContext db)
+        public ProfileController(EduNestDbContext db, ICloudinaryService cloudinaryService)
         {
             _db = db;
+            _cloudinaryService = cloudinaryService;
         }
 
         [HttpGet("me")]
@@ -132,9 +135,88 @@ namespace EduNest_Backend.Controllers
             return Ok(ToProfileResponse(user, tutor));
         }
 
+        [Authorize]
+        [HttpPut("avatar")]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<AvatarResponse>> UploadAvatar(
+    [FromForm] IFormFile avatar)
+        {
+            var userId = CurrentUserId();
+
+            if (avatar == null || avatar.Length == 0)
+            {
+                return BadRequest(new { message = "Avatar image is required." });
+            }
+
+            if (!avatar.ContentType.StartsWith("image/"))
+            {
+                return BadRequest(new { message = "Only image files are allowed." });
+            }
+
+            if (avatar.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { message = "Avatar must be less than 5MB." });
+            }
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            var oldPublicId = user.AvatarPublicId;
+
+            var newPublicId = await _cloudinaryService.UploadAuthenticatedImageAsync(
+                avatar,
+                "edunest/avatars",
+                $"user_{userId}_{Guid.NewGuid():N}");
+
+            user.AvatarPublicId = newPublicId;
+
+            await _db.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(oldPublicId))
+            {
+                await _cloudinaryService.DeleteImageAsync(oldPublicId);
+            }
+
+            return Ok(new AvatarResponse
+            {
+                AvatarUrl = _cloudinaryService.GenerateSignedImageUrl(newPublicId, 300, 300)
+            });
+        }
+
+        [Authorize]
+        [HttpDelete("avatar")]
+        public async Task<ActionResult> DeleteAvatar()
+        {
+            var userId = CurrentUserId();
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            var oldPublicId = user.AvatarPublicId;
+
+            user.AvatarPublicId = null;
+
+            await _db.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(oldPublicId))
+            {
+                await _cloudinaryService.DeleteImageAsync(oldPublicId);
+            }
+
+            return NoContent();
+        }
 
 
-        private static MyProfileResponse ToProfileResponse(User user, Tutor? tutor)
+
+        private MyProfileResponse ToProfileResponse(User user, Tutor? tutor)
         {
             return new MyProfileResponse
             {
@@ -143,6 +225,12 @@ namespace EduNest_Backend.Controllers
                 Email = user.Email,
                 Phone = user.Phone,
                 Role = user.Role,
+                AvatarUrl = string.IsNullOrWhiteSpace(user.AvatarPublicId)
+        ? null
+        : _cloudinaryService.GenerateSignedImageUrl(
+            user.AvatarPublicId,
+            300,
+            300),
 
                 TutorId = tutor?.TutorId,
                 TutorBio = tutor?.Bio,

@@ -18,5 +18,6 @@ namespace BusinessLayer.IServices
             string publicId,
             int width = 800,
             int height = 800);
+        Task DeleteImageAsync(string publicId);
     }
 }
