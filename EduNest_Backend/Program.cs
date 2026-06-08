@@ -105,6 +105,7 @@ builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ITutorReportRepository, TutorReportRepository>();
 builder.Services.AddScoped<IAdminTutorRepository, AdminTutorRepository>();
+builder.Services.AddScoped<ISupportReportService, SupportReportService>();
 #endregion
 
 builder.Services.AddHostedService<BookingExpiryBackgroundService>();
