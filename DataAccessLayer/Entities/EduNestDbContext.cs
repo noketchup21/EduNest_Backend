@@ -58,6 +58,9 @@ namespace DataAccessLayer.Entities
         public DbSet<TutorReport> TutorReports { get; set; }
         public DbSet<TutorReportProofImage> TutorReportProofImages { get; set; }
 
+        public DbSet<SupportReport> SupportReports { get; set; }
+        public DbSet<SupportReportProofImage> SupportReportProofImages { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -423,6 +426,18 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(p => p.TutorReportId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<SupportReport>()
+    .HasOne(r => r.User)
+    .WithMany()
+    .HasForeignKey(r => r.UserId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupportReportProofImage>()
+                .HasOne(p => p.SupportReport)
+                .WithMany(r => r.ProofImages)
+                .HasForeignKey(p => p.SupportReportId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ── Indexes ───────────────────────────────────────────────────────
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
@@ -444,6 +459,15 @@ namespace DataAccessLayer.Entities
                 .HasIndex(r => new { r.TutorId, r.Status });
 
             modelBuilder.Entity<TutorReport>()
+                .HasIndex(r => r.CreatedAt);
+
+            modelBuilder.Entity<SupportReport>()
+                .HasIndex(r => new { r.UserId, r.Status });
+
+            modelBuilder.Entity<SupportReport>()
+                .HasIndex(r => new { r.Role, r.Status });
+
+            modelBuilder.Entity<SupportReport>()
                 .HasIndex(r => r.CreatedAt);
 
             // ── PostgreSQL lowercase naming ───────────────────────────────────  ← ADD HERE
