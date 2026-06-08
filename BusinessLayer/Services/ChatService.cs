@@ -36,6 +36,7 @@ namespace BusinessLayer.Services
 
             var existing = await _db.Conversations
                 .Include(c => c.ConversationUsers)
+                    .ThenInclude(cu => cu.User)
                 .Where(c =>
                     c.ConversationUsers.Any(cu => cu.UserId == userId) &&
                     c.ConversationUsers.Any(cu => cu.UserId == request.OtherUserId))
@@ -64,6 +65,9 @@ namespace BusinessLayer.Services
             _db.Conversations.Add(conversation);
             await _db.SaveChangesAsync();
 
+            conversation = await GetConversationWithUsersAsync(conversation.ConversationId)
+                ?? conversation;
+
             return ToConversationResponse(conversation, userId);
         }
 
@@ -78,7 +82,9 @@ namespace BusinessLayer.Services
                 .OrderByDescending(c => c.LastMessageAt)
                 .ToListAsync();
 
-            return conversations.Select(ToConversationResponse).ToList();
+            return conversations
+                .Select(c => ToConversationResponse(c, userId))
+                .ToList();
         }
 
         public async Task<MessageResponse> SendMessageAsync(
@@ -112,6 +118,10 @@ namespace BusinessLayer.Services
             _db.Messages.Add(message);
             await _db.SaveChangesAsync();
 
+            message.User = conversation.ConversationUsers
+                .First(cu => cu.UserId == userId)
+                .User;
+
             return ToMessageResponse(message);
         }
 
@@ -127,11 +137,21 @@ namespace BusinessLayer.Services
             if (!allowed)
                 throw new UnauthorizedAccessException("You are not in this conversation.");
 
-            return await _db.Messages
+            var messages = await _db.Messages
+                .Include(m => m.User)
                 .Where(m => m.ConversationId == conversationId && !m.IsDeleted)
                 .OrderBy(m => m.CreatedAt)
-                .Select(m => ToMessageResponse(m))
                 .ToListAsync();
+
+            return messages.Select(ToMessageResponse).ToList();
+        }
+
+        private async Task<Conversation?> GetConversationWithUsersAsync(int conversationId)
+        {
+            return await _db.Conversations
+                .Include(c => c.ConversationUsers)
+                    .ThenInclude(cu => cu.User)
+                .FirstOrDefaultAsync(c => c.ConversationId == conversationId);
         }
 
         private ConversationResponse ToConversationResponse(
@@ -156,11 +176,14 @@ namespace BusinessLayer.Services
             };
         }
 
-        private static MessageResponse ToMessageResponse(Message m) => new()
+        private MessageResponse ToMessageResponse(Message m) => new()
         {
             MessageId = m.MessageId,
             ConversationId = m.ConversationId,
             UserId = m.UserId,
+            UserName = m.User?.Name ?? "User",
+            UserRole = m.User?.Role ?? "",
+            UserAvatarUrl = AvatarUrl(m.User),
             Content = m.Content,
             IsRead = m.IsRead,
             CreatedAt = m.CreatedAt
