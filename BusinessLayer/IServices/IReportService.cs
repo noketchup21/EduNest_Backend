@@ -22,5 +22,9 @@ namespace BusinessLayer.IServices
         Task<TutorReportResponse> AdminUpdateReportStatusAsync(
             int reportId,
             UpdateTutorReportStatusRequest request);
+
+        Task<List<TutorReportResponse>> TutorGetReportsAsync(
+    int tutorUserId,
+    string? status);
     }
 }

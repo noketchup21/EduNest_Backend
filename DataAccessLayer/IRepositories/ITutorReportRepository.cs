@@ -25,6 +25,10 @@ namespace DataAccessLayer.IRepositories
 
         Task<List<TutorReport>> GetReportsForAdminAsync(string? status);
 
+        Task<List<TutorReport>> GetReportsForTutorAsync(
+    int tutorUserId,
+    string? status);
+
         Task SaveChangesAsync();
     }
 }

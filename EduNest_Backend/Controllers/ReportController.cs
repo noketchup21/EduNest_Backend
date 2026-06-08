@@ -90,6 +90,16 @@ namespace EduNest_Backend.Controllers
             }
         }
 
+        [Authorize(Roles = "Tutor")]
+        [HttpGet("tutor/me")]
+        public async Task<ActionResult<List<TutorReportResponse>>> TutorGetReports(
+    [FromQuery] string? status)
+        {
+            return Ok(await _reportService.TutorGetReportsAsync(
+                CurrentUserId(),
+                status));
+        }
+
         private int CurrentUserId()
         {
             var value =
