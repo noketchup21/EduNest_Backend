@@ -14,6 +14,7 @@ namespace BusinessLayer.DTOs.Profile
         public string Email { get; set; } = string.Empty;
         public string? Phone { get; set; }
         public string Role { get; set; } = string.Empty;
+        public string? AvatarUrl { get; set; }
 
         public int? TutorId { get; set; }
         public string? TutorBio { get; set; }
