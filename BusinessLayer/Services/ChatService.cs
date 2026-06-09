@@ -222,14 +222,16 @@ namespace BusinessLayer.Services
             if (learnerUserId <= 0)
                 return false;
 
-            var hasCompletedBooking = await _db.Bookings
+            var hasBookedTutor = await _db.Bookings
                 .AnyAsync(b =>
                     b.UserId == learnerUserId &&
-                    b.Status == "Completed" &&
+                    b.Status != "Cancelled" &&
+                    b.Status != "Expired" &&
+                    b.Status != "Rejected" &&
                     !b.IsDeleted &&
                     b.Availability.TutorId == tutor.TutorId);
 
-            return !hasCompletedBooking;
+            return !hasBookedTutor;
         }
 
         private static bool ContainsRestrictedContent(string content)
