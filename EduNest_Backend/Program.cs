@@ -55,7 +55,10 @@ builder.Services.Configure<EmailSetting>(
     builder.Configuration.GetSection(EmailSetting.SectionName));
 
 builder.Services.Configure<PayOSSetting>(
-    builder.Configuration.GetSection("PayOs"));
+    builder.Configuration.GetSection(PayOSSetting.SectionName));
+
+builder.Services.Configure<PayOSChiSetting>(
+    builder.Configuration.GetSection(PayOSChiSetting.SectionName));
 
 builder.Services.Configure<CloudinarySetting>(
     builder.Configuration.GetSection("Cloudinary"));
@@ -106,6 +109,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ITutorReportRepository, TutorReportRepository>();
 builder.Services.AddScoped<IAdminTutorRepository, AdminTutorRepository>();
 builder.Services.AddScoped<ISupportReportService, SupportReportService>();
+builder.Services.AddScoped<IPayOSChiPayoutService, PayOSChiPayoutService>();
 #endregion
 
 builder.Services.AddHostedService<BookingExpiryBackgroundService>();

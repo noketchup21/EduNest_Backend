@@ -61,6 +61,7 @@ namespace BusinessLayer.Services
                 WalletTransactionId = tx.WalletTransactionId,
                 Amount = request.Amount,
                 Status = "Pending",
+                PayoutMethod = "ManualQr",
                 RequestedAt = DateTime.UtcNow
             };
 
@@ -76,11 +77,14 @@ namespace BusinessLayer.Services
         {
             var tutor = await GetTutorByUserIdAsync(tutorUserId);
 
-            return await _db.Payouts
+            var payouts = await _db.Payouts
+                .Include(p => p.Tutor)
+                    .ThenInclude(t => t.BankAccount)
                 .Where(p => p.TutorId == tutor.TutorId)
                 .OrderByDescending(p => p.RequestedAt)
-                .Select(p => ToPayoutResponse(p))
                 .ToListAsync();
+
+            return payouts.Select(ToPayoutResponse).ToList();
         }
 
         public async Task<PayoutResponse> AdminUpdatePayoutAsync(
@@ -138,14 +142,36 @@ namespace BusinessLayer.Services
             return wallet;
         }
 
-        private static PayoutResponse ToPayoutResponse(Payout p) => new()
+        private static PayoutResponse ToPayoutResponse(Payout p)
         {
-            PayoutId = p.PayoutId,
-            TutorId = p.TutorId,
-            Amount = p.Amount,
-            Status = p.Status,
-            RequestedAt = p.RequestedAt,
-            PaidAt = p.PaidAt
-        };
+            var bank = p.Tutor?.BankAccount;
+
+            return new PayoutResponse
+            {
+                PayoutId = p.PayoutId,
+                TutorId = p.TutorId,
+                Amount = p.Amount,
+                Status = p.Status,
+
+                PayoutMethod = p.PayoutMethod,
+
+                RequestedAt = p.RequestedAt,
+                ApprovedAt = p.ApprovedAt,
+                PaidAt = p.PaidAt,
+
+                PayOSChiReferenceId = p.PayOSChiReferenceId,
+                PayOSChiBatchId = p.PayOSChiBatchId,
+                PayOSChiPayoutItemId = p.PayOSChiPayoutItemId,
+                PayOSChiApprovalState = p.PayOSChiApprovalState,
+                PayOSChiTransactionState = p.PayOSChiTransactionState,
+                PayOSChiFailureReason = p.PayOSChiFailureReason,
+
+                TutorBankName = bank?.BankName,
+                TutorBankBin = bank?.BankBin,
+                TutorAccountNumber = bank?.AccountNumber,
+                TutorAccountHolderName = bank?.AccountHolderName,
+                TutorBankBranch = bank?.BranchName
+            };
+        }
     }
 }
