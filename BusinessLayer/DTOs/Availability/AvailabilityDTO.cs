@@ -23,6 +23,7 @@ namespace BusinessLayer.DTOs.Availability
         public decimal TotalCoursePrice { get; set; }   
         public string Status { get; set; } = string.Empty;
         public string Mode { get; set; } = string.Empty;
+        public string? OfflineAreas { get; set; }
         public string Level { get; set; } = string.Empty;
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
@@ -52,6 +53,9 @@ namespace BusinessLayer.DTOs.Availability
         [Required]
         public string Mode { get; set; } = string.Empty;
 
+        [MaxLength(500)]
+        public string? OfflineAreas { get; set; }
+
         [Required]
         public string Level { get; set; } = string.Empty;
 
@@ -72,6 +76,8 @@ namespace BusinessLayer.DTOs.Availability
         public decimal? PricePerSlot { get; set; }
         public string? Status { get; set; }
         public string? Mode { get; set; }
+        [MaxLength(500)]
+        public string? OfflineAreas { get; set; }
         public string? Level { get; set; }
     }
 

@@ -136,7 +136,11 @@ namespace BusinessLayer.Services
                 ?? throw new KeyNotFoundException("Payment not found.");
 
             if (payment.Status == "Paid")
+            {
+                await MarkAvailabilityFullAsync(payment.Booking);
+                await _db.SaveChangesAsync();
                 return ToPaymentResponse(payment);
+            }
 
             if (payment.Provider != "PayOS")
                 throw new InvalidOperationException("This payment is not a PayOS payment.");
@@ -270,6 +274,8 @@ namespace BusinessLayer.Services
             if (payment.Booking == null)
                 throw new InvalidOperationException("Payment booking was not loaded.");
 
+            await MarkAvailabilityFullAsync(payment.Booking);
+
             payment.Status = "Paid";
             payment.PaidAt = DateTime.UtcNow;
 
@@ -278,6 +284,17 @@ namespace BusinessLayer.Services
             await EnsureLessonsForBookingAsync(payment.Booking);
 
             await _db.SaveChangesAsync();
+        }
+
+        private async Task MarkAvailabilityFullAsync(Booking booking)
+        {
+            var availability = booking.Availability
+                ?? await _db.Availabilities.FirstOrDefaultAsync(a =>
+                    a.AvailabilityId == booking.AvailabilityId)
+                ?? throw new InvalidOperationException("Payment availability was not found.");
+
+            if (availability.Status == "Active")
+                availability.Status = "Full";
         }
 
         private async Task EnsureLessonsForBookingAsync(Booking booking)

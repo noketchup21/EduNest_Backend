@@ -28,7 +28,12 @@ namespace BusinessLayer.Services
 .Where(a =>
     a.Status == "Active" &&
     a.Tutor.IsVerified &&
-    a.Tutor.VerificationStatus == "Approved")
+    a.Tutor.VerificationStatus == "Approved" &&
+    !a.Bookings.Any(b =>
+        !b.IsDeleted &&
+        (b.Status == "Confirmed" ||
+         b.Status == "Completed" ||
+         b.Payments.Any(p => p.Status == "Paid"))))
                 .OrderBy(a => a.Tutor.User.Name)
                 .ThenBy(a => a.StartCourseTime)
                 .ToListAsync();
@@ -43,7 +48,14 @@ namespace BusinessLayer.Services
                     .ThenInclude(t => t.User)
                 .Include(a => a.Subject)
                 .Include(a => a.Bookings)
-                .Where(a => a.TutorId == tutorId && a.Status == "Active")
+                .Where(a =>
+                    a.TutorId == tutorId &&
+                    a.Status == "Active" &&
+                    !a.Bookings.Any(b =>
+                        !b.IsDeleted &&
+                        (b.Status == "Confirmed" ||
+                         b.Status == "Completed" ||
+                         b.Payments.Any(p => p.Status == "Paid"))))
                 .OrderBy(a => a.StartCourseTime)
                 .ToListAsync();
 
@@ -95,6 +107,9 @@ namespace BusinessLayer.Services
             if (request.PricePerSlot <= 0)
                 throw new InvalidOperationException("Price per lesson must be greater than 0.");
 
+            var mode = NormalizeMode(request.Mode);
+            var offlineAreas = NormalizeOfflineAreas(mode, request.OfflineAreas);
+
             await EnsureNoTutorAvailabilityConflictAsync(
                 tutor.TutorId,
                 excludeAvailabilityId: null,
@@ -118,7 +133,8 @@ namespace BusinessLayer.Services
                 EndCourseTime = endCourseDate,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime,
-                Mode = request.Mode.Trim(),
+                Mode = mode,
+                OfflineAreas = offlineAreas,
                 Level = request.Level.Trim(),
                 Slot = slotCount,
                 PricePerSlot = request.PricePerSlot,
@@ -166,7 +182,10 @@ namespace BusinessLayer.Services
                 availability.Status = NormalizeAvailabilityStatus(request.Status);
 
             if (!string.IsNullOrWhiteSpace(request.Mode))
-                availability.Mode = request.Mode.Trim();
+                availability.Mode = NormalizeMode(request.Mode);
+
+            if (request.OfflineAreas != null)
+                availability.OfflineAreas = request.OfflineAreas.Trim();
 
             if (!string.IsNullOrWhiteSpace(request.Level))
                 availability.Level = request.Level.Trim();
@@ -192,6 +211,9 @@ namespace BusinessLayer.Services
             }
 
             availability.DayOfWeek = NormalizeDayOfWeek(availability.DayOfWeek);
+            availability.OfflineAreas = NormalizeOfflineAreas(
+                availability.Mode,
+                availability.OfflineAreas);
             availability.StartCourseTime = ToUtcDateOnly(availability.StartCourseTime);
             availability.EndCourseTime = ToUtcDateOnly(availability.EndCourseTime);
 
@@ -354,6 +376,7 @@ namespace BusinessLayer.Services
         private AvailabilityResponse ToResponse(Availability a)
         {
             var hasBookings = HasActiveBooking(a);
+            var isPubliclyBookable = !HasPaidOrConfirmedBooking(a);
 
             return new AvailabilityResponse
             {
@@ -373,11 +396,13 @@ namespace BusinessLayer.Services
                 EndTime = a.EndTime,
 
                 Slot = a.Slot,
+                RemainingSlot = isPubliclyBookable ? 1 : 0,
                 PricePerSlot = a.PricePerSlot,
                 TotalCoursePrice = a.PricePerSlot * Math.Max(1, a.Slot),
 
                 Status = a.Status,
                 Mode = a.Mode,
+                OfflineAreas = a.OfflineAreas,
                 Level = a.Level,
 
                 HasBookings = hasBookings
@@ -470,6 +495,47 @@ namespace BusinessLayer.Services
                 return "Inactive";
 
             throw new InvalidOperationException("Availability status must be Active or Inactive.");
+        }
+
+        private static bool HasPaidOrConfirmedBooking(Availability availability)
+        {
+            return availability.Bookings.Any(b =>
+                !b.IsDeleted &&
+                (b.Status == "Confirmed" ||
+                 b.Status == "Completed" ||
+                 b.Payments.Any(p => p.Status == "Paid")));
+        }
+
+        private static string NormalizeMode(string value)
+        {
+            var mode = value.Trim();
+
+            if (mode.Equals("Online", StringComparison.OrdinalIgnoreCase))
+                return "Online";
+
+            if (mode.Equals("Offline", StringComparison.OrdinalIgnoreCase))
+                return "Offline";
+
+            throw new InvalidOperationException("Mode must be Online or Offline.");
+        }
+
+        private static string? NormalizeOfflineAreas(string mode, string? offlineAreas)
+        {
+            if (!mode.Equals("Offline", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            var areas = offlineAreas?.Trim();
+
+            if (string.IsNullOrWhiteSpace(areas))
+            {
+                throw new InvalidOperationException(
+                    "Offline tutoring areas are required for offline availability.");
+            }
+
+            if (areas.Length > 500)
+                throw new InvalidOperationException("Offline tutoring areas must be 500 characters or less.");
+
+            return areas;
         }
 
         private string? AvatarUrl(User? user)

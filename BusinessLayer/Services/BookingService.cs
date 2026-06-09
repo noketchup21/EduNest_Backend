@@ -26,6 +26,8 @@ namespace BusinessLayer.Services
                 ?? throw new KeyNotFoundException("User not found.");
 
             var availability = await _db.Availabilities
+                .Include(a => a.Bookings)
+                    .ThenInclude(b => b.Payments)
                 .FirstOrDefaultAsync(a =>
                     a.AvailabilityId == request.AvailabilityId &&
                     a.Status == "Active")
@@ -36,6 +38,15 @@ namespace BusinessLayer.Services
 
             if (availability.PricePerSlot <= 0)
                 throw new InvalidOperationException("Invalid course price.");
+
+            var alreadyBooked = availability.Bookings.Any(b =>
+                !b.IsDeleted &&
+                (b.Status == "Confirmed" ||
+                 b.Status == "Completed" ||
+                 b.Payments.Any(p => p.Status == "Paid")));
+
+            if (alreadyBooked)
+                throw new InvalidOperationException("This course has already been booked.");
 
             var existingPendingBooking = await _db.Bookings
                 .Include(b => b.Availability)
