@@ -16,25 +16,14 @@ namespace BusinessLayer.Services
     public sealed class PayOSChiPayoutService : IPayOSChiPayoutService
     {
         private readonly PayOSChiSetting _setting;
-        private readonly PayOSClient _payOSClient;
+        private readonly PayOSClient? _payOSClient;
 
         public PayOSChiPayoutService(IOptions<PayOSChiSetting> setting)
         {
             _setting = setting.Value;
 
-            if (!_setting.Enabled)
-            {
-                // Do not throw here. Let approve payout decide fallback QR.
-                _payOSClient = null!;
+            if (!_setting.Enabled || MissingCredentials())
                 return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_setting.ClientId) ||
-                string.IsNullOrWhiteSpace(_setting.ApiKey) ||
-                string.IsNullOrWhiteSpace(_setting.ChecksumKey))
-            {
-                throw new InvalidOperationException("PayOSChi configuration is missing.");
-            }
 
             _payOSClient = new PayOSClient(
                 _setting.ClientId,
@@ -51,6 +40,9 @@ namespace BusinessLayer.Services
         {
             if (!_setting.Enabled)
                 throw new InvalidOperationException("PayOSChi automatic payout is disabled.");
+
+            if (MissingCredentials() || _payOSClient == null)
+                throw new InvalidOperationException("PayOSChi configuration is missing.");
 
             if (amount <= 0)
                 throw new InvalidOperationException("Payout amount must be greater than 0.");
@@ -105,6 +97,13 @@ namespace BusinessLayer.Services
 
                 RawResponse = raw
             };
+        }
+
+        private bool MissingCredentials()
+        {
+            return string.IsNullOrWhiteSpace(_setting.ClientId) ||
+                   string.IsNullOrWhiteSpace(_setting.ApiKey) ||
+                   string.IsNullOrWhiteSpace(_setting.ChecksumKey);
         }
 
         private static string? TryGetString(object obj, string propertyName)
