@@ -42,7 +42,14 @@ namespace EduNest_Backend.Controllers
         public async Task<ActionResult<AvailabilityResponse>> Create(
             [FromBody] CreateAvailabilityRequest request)
         {
-            return Ok(await _availabilityService.CreateAsync(CurrentUserId(), request));
+            try
+            {
+                return Ok(await _availabilityService.CreateAsync(CurrentUserId(), request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [Authorize]
@@ -51,10 +58,17 @@ namespace EduNest_Backend.Controllers
             int availabilityId,
             [FromBody] UpdateAvailabilityRequest request)
         {
-            return Ok(await _availabilityService.UpdateAsync(
-                CurrentUserId(),
-                availabilityId,
-                request));
+            try
+            {
+                return Ok(await _availabilityService.UpdateAsync(
+                    CurrentUserId(),
+                    availabilityId,
+                    request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [Authorize]
@@ -71,10 +85,29 @@ namespace EduNest_Backend.Controllers
     int availabilityId,
     [FromBody] UpdateAvailabilityStatusRequest request)
         {
-            return Ok(await _availabilityService.SetStatusAsync(
-                CurrentUserId(),
-                availabilityId,
-                request.Status));
+            try
+            {
+                return Ok(await _availabilityService.SetStatusAsync(
+                    CurrentUserId(),
+                    availabilityId,
+                    request.Status));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
+        private ActionResult HandleException(Exception ex)
+        {
+            return ex switch
+            {
+                KeyNotFoundException => NotFound(new { message = ex.Message }),
+                UnauthorizedAccessException => Forbid(),
+                InvalidOperationException => BadRequest(new { message = ex.Message }),
+                ArgumentException => BadRequest(new { message = ex.Message }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error." })
+            };
         }
 
         private int CurrentUserId()

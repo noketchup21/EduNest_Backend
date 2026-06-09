@@ -24,6 +24,10 @@ namespace DataAccessLayer.Entities
         [Required, MaxLength(20)]
         public string Mode { get; set; }
         // Online / Offline
+
+        [MaxLength(500)]
+        public string? OfflineAreas { get; set; }
+
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
 
