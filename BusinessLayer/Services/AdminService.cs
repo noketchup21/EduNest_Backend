@@ -98,7 +98,7 @@ namespace BusinessLayer.Services
                 grossLessonRevenue += lesson.Booking.PriceAtBooking / totalLessonsInBooking;
             }
 
-            var platformRevenue = Math.Round(grossLessonRevenue * 0.10m, 2);
+            var platformRevenue = Math.Round(grossLessonRevenue * 0.20m, 2);
             var tutorRevenue = grossLessonRevenue - platformRevenue;
 
             return new AdminDashboardResponse

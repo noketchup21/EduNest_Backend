@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading.Tasks;
 using BusinessLayer.DTOs.Conversation;
@@ -12,6 +13,29 @@ namespace BusinessLayer.Services
 {
     public sealed class ChatService : IChatService
     {
+        private const string RestrictedChatWarning =
+            "For your safety, keep communication and payment inside EduNest.";
+
+        private static readonly Regex EmailPattern = new(
+            @"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex LinkPattern = new(
+            @"\b((https?:\/\/|www\.)\S+|[A-Z0-9-]+\.(com|vn|net|org|io|me|app|edu|info)\b\S*)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex PhonePattern = new(
+            @"(?<!\d)(?:\+?84|0)(?:[\s.\-()]?\d){8,10}(?!\d)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex LongNumberPattern = new(
+            @"(?<!\d)(?:\d[\s.\-]*){8,20}(?!\d)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex RestrictedKeywordPattern = new(
+            @"\b(zalo|facebook|fb|messenger|m\.me|telegram|whatsapp|gmail|email|e-mail|qr|vietqr|bank|banking|stk|so\s*tai\s*khoan|số\s*tài\s*khoản|tai\s*khoan\s*ngan\s*hang|tài\s*khoản\s*ngân\s*hàng|chuyen\s*khoan|chuyển\s*khoản|ngan\s*hang|ngân\s*hàng|momo|vietcombank|vcb|techcombank|tcb|mbbank|mb\s*bank|acb|bidv|vietinbank|vpbank|tpbank)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         private readonly EduNestDbContext _db;
         private readonly ICloudinaryService _cloudinaryService;
 
@@ -123,11 +147,22 @@ namespace BusinessLayer.Services
             if (!conversation.ConversationUsers.Any(cu => cu.UserId == userId))
                 throw new UnauthorizedAccessException("You are not in this conversation.");
 
+            var content = request.Content.Trim();
+
+            if (string.IsNullOrWhiteSpace(content))
+                throw new InvalidOperationException("Message content is required.");
+
+            if (await ShouldApplyRestrictedChatAsync(conversation) &&
+                ContainsRestrictedContent(content))
+            {
+                throw new InvalidOperationException(RestrictedChatWarning);
+            }
+
             var message = new Message
             {
                 ConversationId = conversationId,
                 UserId = userId,
-                Content = request.Content.Trim(),
+                Content = content,
                 CreatedAt = DateTime.UtcNow,
                 IsRead = false,
                 IsDeleted = false
@@ -164,6 +199,69 @@ namespace BusinessLayer.Services
                 .ToListAsync();
 
             return messages.Select(ToMessageResponse).ToList();
+        }
+
+        private async Task<bool> ShouldApplyRestrictedChatAsync(Conversation conversation)
+        {
+            var participantIds = conversation.ConversationUsers
+                .Select(cu => cu.UserId)
+                .Distinct()
+                .ToList();
+
+            if (participantIds.Count != 2)
+                return false;
+
+            var tutor = await _db.Tutors
+                .FirstOrDefaultAsync(t => participantIds.Contains(t.UserId));
+
+            if (tutor == null)
+                return false;
+
+            var learnerUserId = participantIds.FirstOrDefault(id => id != tutor.UserId);
+
+            if (learnerUserId <= 0)
+                return false;
+
+            var hasCompletedBooking = await _db.Bookings
+                .AnyAsync(b =>
+                    b.UserId == learnerUserId &&
+                    b.Status == "Completed" &&
+                    !b.IsDeleted &&
+                    b.Availability.TutorId == tutor.TutorId);
+
+            return !hasCompletedBooking;
+        }
+
+        private static bool ContainsRestrictedContent(string content)
+        {
+            if (EmailPattern.IsMatch(content) ||
+                LinkPattern.IsMatch(content) ||
+                PhonePattern.IsMatch(content) ||
+                RestrictedKeywordPattern.IsMatch(content))
+            {
+                return true;
+            }
+
+            if (!LongNumberPattern.IsMatch(content))
+                return false;
+
+            return RestrictedKeywordPattern.IsMatch(content) ||
+                   ContainsBankNumberHint(content);
+        }
+
+        private static bool ContainsBankNumberHint(string content)
+        {
+            var normalized = content.ToLowerInvariant();
+
+            return normalized.Contains("account") ||
+                   normalized.Contains("bank") ||
+                   normalized.Contains("stk") ||
+                   normalized.Contains("tai khoan") ||
+                   normalized.Contains("tài khoản") ||
+                   normalized.Contains("ngan hang") ||
+                   normalized.Contains("ngân hàng") ||
+                   normalized.Contains("chuyen khoan") ||
+                   normalized.Contains("chuyển khoản");
         }
 
         private async Task<Conversation?> GetConversationWithUsersAsync(int conversationId)
