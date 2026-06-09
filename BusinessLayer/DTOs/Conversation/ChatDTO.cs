@@ -9,8 +9,8 @@ namespace BusinessLayer.DTOs.Conversation
 {
     public sealed class StartConversationRequest
     {
-        [Required]
-        public int OtherUserId { get; set; }
+        public int? OtherUserId { get; set; }
+        public string? OtherUserEmail { get; set; }
     }
 
     public sealed class SendMessageRequest

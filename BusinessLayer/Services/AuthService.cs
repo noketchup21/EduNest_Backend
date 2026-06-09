@@ -137,6 +137,18 @@ namespace BusinessLayer.Services
             var user = await _userRepository.FindOneAsync(u =>
                 u.Email == dto.Email && !u.IsDeleted);
 
+            if (!user.IsActive)
+            {
+                if (user.Role.Equals("Tutor", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new UnauthorizedAccessException(
+                        "Your tutor account has been deactivated by admin. Please contact EduNest support.");
+                }
+
+                throw new UnauthorizedAccessException(
+                    "Your account has been deactivated. Please contact EduNest support.");
+            }
+
             if (user == null)
                 throw new UnauthorizedAccessException("Invalid email or password.");
 

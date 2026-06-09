@@ -25,21 +25,39 @@ namespace BusinessLayer.Services
             int userId,
             StartConversationRequest request)
         {
-            if (userId == request.OtherUserId)
+            User? otherUser = null;
+
+            if (request.OtherUserId.HasValue && request.OtherUserId.Value > 0)
+            {
+                otherUser = await _db.Users
+                    .FirstOrDefaultAsync(u =>
+                        u.UserId == request.OtherUserId.Value &&
+                        !u.IsDeleted &&
+                        u.IsActive);
+            }
+            else if (!string.IsNullOrWhiteSpace(request.OtherUserEmail))
+            {
+                var email = request.OtherUserEmail.Trim().ToLower();
+
+                otherUser = await _db.Users
+                    .FirstOrDefaultAsync(u =>
+                        u.Email.ToLower() == email &&
+                        !u.IsDeleted &&
+                        u.IsActive);
+            }
+
+            if (otherUser == null)
+                throw new KeyNotFoundException("User not found or inactive.");
+
+            if (userId == otherUser.UserId)
                 throw new InvalidOperationException("Cannot chat with yourself.");
-
-            var otherExists = await _db.Users
-                .AnyAsync(u => u.UserId == request.OtherUserId && !u.IsDeleted);
-
-            if (!otherExists)
-                throw new KeyNotFoundException("Other user not found.");
 
             var existing = await _db.Conversations
                 .Include(c => c.ConversationUsers)
                     .ThenInclude(cu => cu.User)
                 .Where(c =>
                     c.ConversationUsers.Any(cu => cu.UserId == userId) &&
-                    c.ConversationUsers.Any(cu => cu.UserId == request.OtherUserId))
+                    c.ConversationUsers.Any(cu => cu.UserId == otherUser.UserId))
                 .FirstOrDefaultAsync();
 
             if (existing != null)
@@ -59,16 +77,18 @@ namespace BusinessLayer.Services
 
             conversation.ConversationUsers.Add(new ConversationUser
             {
-                UserId = request.OtherUserId
+                UserId = otherUser.UserId
             });
 
             _db.Conversations.Add(conversation);
             await _db.SaveChangesAsync();
 
-            conversation = await GetConversationWithUsersAsync(conversation.ConversationId)
-                ?? conversation;
+            var fullConversation = await _db.Conversations
+                .Include(c => c.ConversationUsers)
+                    .ThenInclude(cu => cu.User)
+                .FirstAsync(c => c.ConversationId == conversation.ConversationId);
 
-            return ToConversationResponse(conversation, userId);
+            return ToConversationResponse(fullConversation, userId);
         }
 
         public async Task<List<ConversationResponse>> GetMyConversationsAsync(int userId)
@@ -155,19 +175,22 @@ namespace BusinessLayer.Services
         }
 
         private ConversationResponse ToConversationResponse(
-            Conversation c,
+            Conversation conversation,
             int currentUserId)
         {
-            var otherUser = c.ConversationUsers
+            var otherUser = conversation.ConversationUsers
                 .Select(cu => cu.User)
                 .FirstOrDefault(u => u.UserId != currentUserId);
 
             return new ConversationResponse
             {
-                ConversationId = c.ConversationId,
-                LastMessageAt = c.LastMessageAt,
-                IsActive = c.IsActive,
-                UserIds = c.ConversationUsers.Select(cu => cu.UserId).ToList(),
+                ConversationId = conversation.ConversationId,
+                LastMessageAt = conversation.LastMessageAt,
+                IsActive = conversation.IsActive,
+
+                UserIds = conversation.ConversationUsers
+                    .Select(cu => cu.UserId)
+                    .ToList(),
 
                 OtherUserId = otherUser?.UserId ?? 0,
                 OtherUserName = otherUser?.Name ?? "User",
