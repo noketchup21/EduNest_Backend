@@ -112,9 +112,9 @@ namespace EduNest_Backend.Controllers
             int payoutId,
             [FromBody] AdminUpdatePayoutRequest request)
         {
-            return Ok(await _payoutService.AdminUpdatePayoutAsync(
+            return Ok(await _adminService.UpdatePayoutStatusAsync(
                 payoutId,
-                request));
+                request.Status));
         }
 
         [Authorize(Roles = "Admin")]
