@@ -64,7 +64,7 @@ namespace BusinessLayer.Services
                 lesson.Booking.PriceAtBooking / totalLessons,
                 2);
 
-            var platformFee = Math.Round(grossLessonAmount * 0.10m, 2);
+            var platformFee = Math.Round(grossLessonAmount * 0.20m, 2);
 
             var tutorAmount = grossLessonAmount - platformFee;
 
@@ -78,8 +78,8 @@ namespace BusinessLayer.Services
                 Description =
                     $"Lesson #{lesson.LessonId} completed. " +
                     $"Gross: {grossLessonAmount}, " +
-                    $"Platform fee 10%: {platformFee}, " +
-                    $"Tutor receives 90%: {tutorAmount}",
+                    $"Platform fee 20%: {platformFee}, " +
+                    $"Tutor receives 80%: {tutorAmount}",
                 CreatedAt = DateTime.UtcNow
             });
         }

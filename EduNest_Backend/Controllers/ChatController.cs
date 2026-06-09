@@ -23,9 +23,16 @@ namespace EduNest_Backend.Controllers
         public async Task<ActionResult<ConversationResponse>> StartConversation(
             StartConversationRequest request)
         {
-            return Ok(await _chatService.StartConversationAsync(
-                CurrentUserId(),
-                request));
+            try
+            {
+                return Ok(await _chatService.StartConversationAsync(
+                    CurrentUserId(),
+                    request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [HttpGet("conversation")]
@@ -39,19 +46,45 @@ namespace EduNest_Backend.Controllers
             int conversationId,
             SendMessageRequest request)
         {
-            return Ok(await _chatService.SendMessageAsync(
-                CurrentUserId(),
-                conversationId,
-                request));
+            try
+            {
+                return Ok(await _chatService.SendMessageAsync(
+                    CurrentUserId(),
+                    conversationId,
+                    request));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
         }
 
         [HttpGet("conversation/{conversationId:int}/message")]
         public async Task<ActionResult<List<MessageResponse>>> GetMessages(
             int conversationId)
         {
-            return Ok(await _chatService.GetMessagesAsync(
-                CurrentUserId(),
-                conversationId));
+            try
+            {
+                return Ok(await _chatService.GetMessagesAsync(
+                    CurrentUserId(),
+                    conversationId));
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
+        private ActionResult HandleException(Exception ex)
+        {
+            return ex switch
+            {
+                KeyNotFoundException => NotFound(new { message = ex.Message }),
+                UnauthorizedAccessException => Forbid(),
+                InvalidOperationException => BadRequest(new { message = ex.Message }),
+                ArgumentException => BadRequest(new { message = ex.Message }),
+                _ => StatusCode(StatusCodes.Status500InternalServerError, new { message = "Server error." })
+            };
         }
 
         private int CurrentUserId()
