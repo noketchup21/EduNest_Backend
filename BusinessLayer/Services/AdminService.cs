@@ -8,9 +8,11 @@ using BusinessLayer.DTOs.Payment;
 using BusinessLayer.DTOs.Subject;
 using BusinessLayer.DTOs.Tutor;
 using BusinessLayer.IServices;
+using BusinessLayer.Settings;
 using DataAccessLayer.Entities;
 using DataAccessLayer.IRepositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BusinessLayer.Services
 {
@@ -20,15 +22,20 @@ namespace BusinessLayer.Services
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IAdminTutorRepository _adminTutorRepository;
         private readonly IPayOSChiPayoutService _payOSChiPayoutService;
+        private readonly PayOSChiSetting _payOSChiSetting;
 
         public AdminService(
             EduNestDbContext db,
-            ICloudinaryService cloudinaryService, IAdminTutorRepository adminTutorRepository, IPayOSChiPayoutService payOSChiPayoutService)
+            ICloudinaryService cloudinaryService,
+            IAdminTutorRepository adminTutorRepository,
+            IPayOSChiPayoutService payOSChiPayoutService,
+            IOptions<PayOSChiSetting> payOSChiSetting)
         {
             _db = db;
             _cloudinaryService = cloudinaryService;
             _adminTutorRepository = adminTutorRepository;
             _payOSChiPayoutService = payOSChiPayoutService;
+            _payOSChiSetting = payOSChiSetting.Value;
         }
 
         public async Task TrackDownloadAsync(TrackAppMetricRequest request)
@@ -461,7 +468,7 @@ namespace BusinessLayer.Services
                     amount: Convert.ToInt32(payout.Amount),
                     tutorBankBin: bank.BankBin,
                     tutorAccountNumber: bank.AccountNumber,
-                    description: $"EDUNEST PAYOUT {payout.PayoutId}");
+                    description: BuildPayOSChiDescription(payout.PayoutId));
 
                 payout.PayOSChiReferenceId = result.ReferenceId;
                 payout.PayOSChiBatchId = result.BatchId;
@@ -498,15 +505,70 @@ namespace BusinessLayer.Services
             }
             catch (Exception ex)
             {
+                if (!_payOSChiSetting.FallbackToQrWhenFailed)
+                    throw;
+
                 payout.Status = "ManualQrRequired";
                 payout.PayoutMethod = "ManualQr";
-                payout.PayOSChiFailureReason = ex.Message;
+                payout.PayOSChiFailureReason = BuildPayOSChiFailureReason(ex);
 
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 return ToPayoutResponse(payout);
             }
+        }
+
+        private string BuildPayOSChiDescription(int payoutId)
+        {
+            var prefix = string.IsNullOrWhiteSpace(_payOSChiSetting.DefaultDescriptionPrefix)
+                ? "EDUNEST PAYOUT"
+                : _payOSChiSetting.DefaultDescriptionPrefix.Trim();
+
+            return $"{prefix} {payoutId}";
+        }
+
+        private static string BuildPayOSChiFailureReason(Exception ex)
+        {
+            var parts = new List<string>
+            {
+                $"{ex.GetType().Name}: {ex.Message}"
+            };
+
+            foreach (var propertyName in new[]
+                     {
+                         "StatusCode",
+                         "Code",
+                         "ErrorCode",
+                         "ResponseCode",
+                         "ResponseBody",
+                         "RawResponse",
+                         "Details"
+                     })
+            {
+                var property = ex.GetType().GetProperty(propertyName);
+                var value = property?.GetValue(ex);
+
+                if (value == null)
+                    continue;
+
+                var text = value.ToString();
+
+                if (!string.IsNullOrWhiteSpace(text))
+                    parts.Add($"{propertyName}: {text}");
+            }
+
+            if (ex.InnerException != null)
+            {
+                parts.Add(
+                    $"Inner {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            }
+
+            var reason = string.Join(" | ", parts);
+
+            return reason.Length <= 1000
+                ? reason
+                : reason[..1000];
         }
 
         private static bool IsPayOSSuccess(string? value)
