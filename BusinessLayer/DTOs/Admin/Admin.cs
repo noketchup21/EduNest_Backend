@@ -74,5 +74,16 @@ namespace BusinessLayer.DTOs.Admin
         public string TransferContent { get; set; } = string.Empty;
         public string? TransferQrUrl { get; set; }
         public string? TransferQrNote { get; set; }
+
+        public string PayoutMethod { get; set; } = string.Empty;
+
+        public DateTime? ApprovedAt { get; set; }
+
+        public string? PayOSChiReferenceId { get; set; }
+        public string? PayOSChiBatchId { get; set; }
+        public string? PayOSChiPayoutItemId { get; set; }
+        public string? PayOSChiApprovalState { get; set; }
+        public string? PayOSChiTransactionState { get; set; }
+        public string? PayOSChiFailureReason { get; set; }
     }
 }
