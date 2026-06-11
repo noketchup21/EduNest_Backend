@@ -61,6 +61,7 @@ namespace BusinessLayer.Services
                 Type = type,
                 Title = request.Title.Trim(),
                 Description = request.Description?.Trim() ?? string.Empty,
+                Url = string.Empty,
                 DueDate = ToUtc(request.DueDate),
                 UploadedAt = DateTime.UtcNow
             };

@@ -27,7 +27,7 @@ namespace DataAccessLayer.Entities
         public string Description { get; set; }
 
         [MaxLength(500)]
-        public string Url { get; set; }
+        public string Url { get; set; } = string.Empty;
 
         public DateTime DueDate { get; set; }
         public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
