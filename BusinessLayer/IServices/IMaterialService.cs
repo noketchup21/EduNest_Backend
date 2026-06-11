@@ -34,5 +34,13 @@ namespace BusinessLayer.IServices
             UpsertMaterialItemRequest request);
 
         Task DeleteItemAsync(int tutorUserId, int materialId);
+
+        Task<MaterialDownloadResult> GetDownloadAsync(int materialId);
     }
+
+    public sealed record MaterialDownloadResult(
+        string? FilePath,
+        string? RedirectUrl,
+        string FileName,
+        string ContentType);
 }
