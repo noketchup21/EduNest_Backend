@@ -87,7 +87,10 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(t => t.UserId == tutorUserId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
 
-            var normalizedDay = NormalizeDayOfWeek(request.DayOfWeek);
+            var normalizedDays = NormalizeDaysOfWeek(
+                request.DaysOfWeek,
+                request.DayOfWeek);
+            var normalizedDayText = string.Join(",", normalizedDays);
 
             var startCourseDate = ToUtcDateOnly(request.StartCourseTime);
             var endCourseDate = ToUtcDateOnly(request.EndCourseTime);
@@ -113,7 +116,7 @@ namespace BusinessLayer.Services
             await EnsureNoTutorAvailabilityConflictAsync(
                 tutor.TutorId,
                 excludeAvailabilityId: null,
-                dayOfWeek: normalizedDay,
+                dayOfWeeks: normalizedDays,
                 startCourseTime: startCourseDate,
                 endCourseTime: endCourseDate,
                 startTime: request.StartTime,
@@ -122,13 +125,13 @@ namespace BusinessLayer.Services
             var slotCount = CalculateSlotCount(
                 startCourseDate,
                 endCourseDate,
-                normalizedDay);
+                normalizedDays);
 
             var availability = new Availability
             {
                 TutorId = tutor.TutorId,
                 SubjectId = request.SubjectId,
-                DayOfWeek = normalizedDay,
+                DayOfWeek = normalizedDayText,
                 StartCourseTime = startCourseDate,
                 EndCourseTime = endCourseDate,
                 StartTime = request.StartTime,
@@ -175,8 +178,13 @@ namespace BusinessLayer.Services
             if (request.SubjectId.HasValue)
                 availability.SubjectId = request.SubjectId;
 
-            if (!string.IsNullOrWhiteSpace(request.DayOfWeek))
-                availability.DayOfWeek = NormalizeDayOfWeek(request.DayOfWeek);
+            if (request.DaysOfWeek?.Any() == true ||
+                !string.IsNullOrWhiteSpace(request.DayOfWeek))
+            {
+                availability.DayOfWeek = string.Join(
+                    ",",
+                    NormalizeDaysOfWeek(request.DaysOfWeek, request.DayOfWeek));
+            }
 
             if (!string.IsNullOrWhiteSpace(request.Status))
                 availability.Status = NormalizeAvailabilityStatus(request.Status);
@@ -210,7 +218,8 @@ namespace BusinessLayer.Services
                 availability.PricePerSlot = request.PricePerSlot.Value;
             }
 
-            availability.DayOfWeek = NormalizeDayOfWeek(availability.DayOfWeek);
+            var normalizedDays = NormalizeDaysOfWeek(null, availability.DayOfWeek);
+            availability.DayOfWeek = string.Join(",", normalizedDays);
             availability.OfflineAreas = NormalizeOfflineAreas(
                 availability.Mode,
                 availability.OfflineAreas);
@@ -228,7 +237,7 @@ namespace BusinessLayer.Services
                 await EnsureNoTutorAvailabilityConflictAsync(
                     availability.TutorId,
                     excludeAvailabilityId: availability.AvailabilityId,
-                    dayOfWeek: availability.DayOfWeek,
+                    dayOfWeeks: normalizedDays,
                     startCourseTime: availability.StartCourseTime,
                     endCourseTime: availability.EndCourseTime,
                     startTime: availability.StartTime,
@@ -238,7 +247,7 @@ namespace BusinessLayer.Services
             availability.Slot = CalculateSlotCount(
                 availability.StartCourseTime,
                 availability.EndCourseTime,
-                availability.DayOfWeek);
+                normalizedDays);
 
             await _db.SaveChangesAsync();
 
@@ -296,7 +305,7 @@ namespace BusinessLayer.Services
                 await EnsureNoTutorAvailabilityConflictAsync(
                     availability.TutorId,
                     excludeAvailabilityId: availability.AvailabilityId,
-                    dayOfWeek: availability.DayOfWeek,
+                    dayOfWeeks: NormalizeDaysOfWeek(null, availability.DayOfWeek),
                     startCourseTime: availability.StartCourseTime,
                     endCourseTime: availability.EndCourseTime,
                     startTime: availability.StartTime,
@@ -329,13 +338,15 @@ namespace BusinessLayer.Services
         private async Task EnsureNoTutorAvailabilityConflictAsync(
             int tutorId,
             int? excludeAvailabilityId,
-            string dayOfWeek,
+            IReadOnlyCollection<string> dayOfWeeks,
             DateTime startCourseTime,
             DateTime endCourseTime,
             TimeSpan startTime,
             TimeSpan endTime)
         {
-            var normalizedDay = NormalizeDayOfWeek(dayOfWeek);
+            var normalizedDays = dayOfWeeks
+                .Select(NormalizeDayOfWeek)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             var existingAvailabilities = await _db.Availabilities
                 .Where(a =>
@@ -345,14 +356,12 @@ namespace BusinessLayer.Services
                      a.AvailabilityId != excludeAvailabilityId.Value))
                 .ToListAsync();
 
-            existingAvailabilities = existingAvailabilities
-                .Where(a => NormalizeDayOfWeek(a.DayOfWeek) == normalizedDay)
-                .ToList();
-
             var newStartDate = startCourseTime.Date;
             var newEndDate = endCourseTime.Date;
 
             var conflict = existingAvailabilities.FirstOrDefault(a =>
+                NormalizeDaysOfWeek(null, a.DayOfWeek)
+                    .Any(day => normalizedDays.Contains(day)) &&
                 DateRangesOverlap(
                     newStartDate,
                     newEndDate,
@@ -366,8 +375,13 @@ namespace BusinessLayer.Services
 
             if (conflict != null)
             {
+                var conflictDays = string.Join(
+                    ", ",
+                    NormalizeDaysOfWeek(null, conflict.DayOfWeek)
+                        .Where(day => normalizedDays.Contains(day)));
+
                 throw new InvalidOperationException(
-                    $"You already have availability on {normalizedDay} " +
+                    $"You already have availability on {conflictDays} " +
                     $"from {conflict.StartTime:hh\\:mm} to {conflict.EndTime:hh\\:mm} " +
                     $"during this course date range.");
             }
@@ -390,6 +404,7 @@ namespace BusinessLayer.Services
                 SubjectName = a.Subject?.Name,
 
                 DayOfWeek = a.DayOfWeek,
+                DaysOfWeek = NormalizeDaysOfWeek(null, a.DayOfWeek).ToList(),
                 StartCourseTime = a.StartCourseTime,
                 EndCourseTime = a.EndCourseTime,
                 StartTime = a.StartTime,
@@ -430,10 +445,17 @@ namespace BusinessLayer.Services
         private static int CalculateSlotCount(
             DateTime startCourseTime,
             DateTime endCourseTime,
-            string dayOfWeek)
+            IReadOnlyCollection<string> dayOfWeeks)
         {
-            if (!Enum.TryParse<DayOfWeek>(dayOfWeek, true, out var targetDay))
-                throw new InvalidOperationException("Invalid day of week.");
+            var targetDays = dayOfWeeks
+                .Select(day =>
+                {
+                    if (!Enum.TryParse<DayOfWeek>(day, true, out var parsed))
+                        throw new InvalidOperationException("Invalid day of week.");
+
+                    return parsed;
+                })
+                .ToHashSet();
 
             var startDate = startCourseTime.Date;
             var endDate = endCourseTime.Date;
@@ -445,7 +467,7 @@ namespace BusinessLayer.Services
 
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
-                if (date.DayOfWeek == targetDay)
+                if (targetDays.Contains(date.DayOfWeek))
                     count++;
             }
 
@@ -482,6 +504,49 @@ namespace BusinessLayer.Services
                 throw new InvalidOperationException("Invalid day of week.");
 
             return day.ToString();
+        }
+
+        private static IReadOnlyList<string> NormalizeDaysOfWeek(
+            IEnumerable<string>? daysOfWeek,
+            string? fallbackDayOfWeek)
+        {
+            var values = daysOfWeek?
+                .Where(day => !string.IsNullOrWhiteSpace(day))
+                .Select(day => day.Trim())
+                .ToList() ?? new List<string>();
+
+            if (values.Count == 0 && !string.IsNullOrWhiteSpace(fallbackDayOfWeek))
+            {
+                values = fallbackDayOfWeek
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToList();
+            }
+
+            if (values.Count == 0)
+                throw new InvalidOperationException("Choose at least one day of week.");
+
+            var normalized = values
+                .Select(NormalizeDayOfWeek)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(DaySortOrder)
+                .ToList();
+
+            return normalized;
+        }
+
+        private static int DaySortOrder(string day)
+        {
+            return Enum.Parse<DayOfWeek>(day) switch
+            {
+                DayOfWeek.Monday => 1,
+                DayOfWeek.Tuesday => 2,
+                DayOfWeek.Wednesday => 3,
+                DayOfWeek.Thursday => 4,
+                DayOfWeek.Friday => 5,
+                DayOfWeek.Saturday => 6,
+                DayOfWeek.Sunday => 7,
+                _ => 8
+            };
         }
 
         private static string NormalizeAvailabilityStatus(string value)

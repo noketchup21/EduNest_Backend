@@ -18,7 +18,7 @@ namespace DataAccessLayer.Entities
 
         public int? SubjectId { get; set; }
 
-        [Required, MaxLength(20)]
+        [Required, MaxLength(120)]
         public string DayOfWeek { get; set; }
 
         [Required, MaxLength(20)]

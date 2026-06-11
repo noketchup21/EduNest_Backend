@@ -306,7 +306,7 @@ namespace BusinessLayer.Services
                 ?? await _db.Availabilities.FirstAsync(a =>
                     a.AvailabilityId == booking.AvailabilityId);
 
-            var day = ParseDayOfWeek(availability.DayOfWeek);
+            var days = ParseDaysOfWeek(availability.DayOfWeek);
 
             var startDate = availability.StartCourseTime.Date;
             var endDate = availability.EndCourseTime.Date;
@@ -318,7 +318,7 @@ namespace BusinessLayer.Services
 
             for (var date = startDate; date <= endDate; date = date.AddDays(1))
             {
-                if (date.DayOfWeek != day)
+                if (!days.Contains(date.DayOfWeek))
                     continue;
 
                 var vietnamTimeZone = GetVietnamTimeZone();
@@ -419,11 +419,18 @@ namespace BusinessLayer.Services
                 .ToLowerInvariant();
         }
 
-        private static DayOfWeek ParseDayOfWeek(string value)
+        private static HashSet<DayOfWeek> ParseDaysOfWeek(string value)
         {
-            return Enum.TryParse<DayOfWeek>(value, true, out var day)
-                ? day
-                : DayOfWeek.Monday;
+            var days = value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(day => Enum.TryParse<DayOfWeek>(day, true, out var parsed)
+                    ? parsed
+                    : DayOfWeek.Monday)
+                .ToHashSet();
+
+            return days.Count == 0
+                ? new HashSet<DayOfWeek> { DayOfWeek.Monday }
+                : days;
         }
 
         private static CreatePaymentResponse ToPaymentResponse(Payment payment)
