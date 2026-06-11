@@ -429,6 +429,8 @@ namespace BusinessLayer.Services
 
         private static MaterialResponse ToMaterialResponse(Material material)
         {
+            var fileUrl = NormalizeMaterialFileUrl(material);
+
             return new MaterialResponse
             {
                 MaterialId = material.MaterialId,
@@ -437,7 +439,7 @@ namespace BusinessLayer.Services
                 AvailabilityId = material.AvailabilityId,
                 Title = material.Title,
                 Description = material.Description,
-                FileUrl = material.FileUrl,
+                FileUrl = fileUrl,
                 FileName = material.FileName,
                 ContentType = material.ContentType,
                 FileSize = material.FileSize,
@@ -445,6 +447,23 @@ namespace BusinessLayer.Services
                 CreatedAt = material.CreatedAt,
                 UpdatedAt = material.UpdatedAt
             };
+        }
+
+        private static string? NormalizeMaterialFileUrl(Material material)
+        {
+            var url = material.FileUrl?.Trim();
+            if (string.IsNullOrWhiteSpace(url)) return null;
+
+            if (url.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+                return $"/api/material/items/{material.MaterialId}/download";
+
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+                uri.AbsolutePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+            {
+                return $"/api/material/items/{material.MaterialId}/download";
+            }
+
+            return url;
         }
 
         private static string? NormalizeOptional(string? value)
