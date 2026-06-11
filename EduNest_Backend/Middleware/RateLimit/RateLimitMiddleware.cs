@@ -13,6 +13,8 @@ namespace EduNest_Backend.Middleware.RateLimit
         private readonly RateLimitOption _options;
 
         private static readonly ConcurrentDictionary<string, ClientRequestInfo> _clients = new();
+        private static readonly object CleanupLock = new();
+        private static DateTime _lastCleanup = DateTime.UtcNow;
 
         public RateLimitMiddleware(
             RequestDelegate next,
@@ -28,6 +30,7 @@ namespace EduNest_Backend.Middleware.RateLimit
         {
             var clientIp = GetClientIp(context);
             var now = DateTime.UtcNow;
+            CleanupExpiredClients(now, _options.WindowSeconds);
 
             var clientInfo = _clients.AddOrUpdate(
                 clientIp,
@@ -70,6 +73,26 @@ namespace EduNest_Backend.Middleware.RateLimit
             }
 
             await _next(context);
+        }
+
+        private static void CleanupExpiredClients(DateTime now, int windowSeconds)
+        {
+            if ((now - _lastCleanup).TotalSeconds < windowSeconds) return;
+
+            lock (CleanupLock)
+            {
+                if ((now - _lastCleanup).TotalSeconds < windowSeconds) return;
+
+                foreach (var item in _clients)
+                {
+                    if ((now - item.Value.WindowStart).TotalSeconds >= windowSeconds * 2)
+                    {
+                        _clients.TryRemove(item.Key, out _);
+                    }
+                }
+
+                _lastCleanup = now;
+            }
         }
 
         private static string GetClientIp(HttpContext context)

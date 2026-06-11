@@ -8,9 +8,12 @@ using DataAccessLayer.Entities;
 using DataAccessLayer.IRepositories;
 using DataAccessLayer.Repositories;
 using EduNest_Backend.BackgroundServices;
+using EduNest_Backend.Middleware;
 using EduNest_Backend.Middleware.RateLimit;
 using Mapster;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
@@ -31,6 +34,13 @@ builder.Services.AddDbContext<EduNestDbContext>(options =>
 builder.Services.AddMapster();
 MapsterConfig.Configure();
 builder.Services.AddRateLimiting(builder.Configuration);
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -45,7 +55,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
-                    ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    statusCode = StatusCodes.Status401Unauthorized,
+                    message = "Authentication is required or the token has expired."
+                });
+            },
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    statusCode = StatusCodes.Status403Forbidden,
+                    message = "You do not have permission to access this resource."
+                });
+            }
         };
     });
 
@@ -112,9 +146,6 @@ builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ITutorEngagementService, TutorEngagementService>();
-builder.Services.AddScoped<IReportService, ReportService>();
-builder.Services.AddScoped<ITutorReportRepository, TutorReportRepository>();
-builder.Services.AddScoped<IAdminTutorRepository, AdminTutorRepository>();
 builder.Services.AddScoped<ISupportReportService, SupportReportService>();
 builder.Services.AddScoped<IPayOSChiPayoutService, PayOSChiPayoutService>();
 #endregion
@@ -123,6 +154,24 @@ builder.Services.AddHostedService<BookingExpiryBackgroundService>();
 
 builder.Services.AddHttpClient();
 
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(item => item.Value?.Errors.Count > 0)
+            .ToDictionary(
+                item => item.Key,
+                item => item.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+
+        return new BadRequestObjectResult(new
+        {
+            statusCode = StatusCodes.Status400BadRequest,
+            message = "Validation failed.",
+            errors
+        });
+    };
+});
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -175,8 +224,14 @@ var webRootPath = app.Environment.WebRootPath
 var uploadsRoot = Path.Combine(webRootPath, "uploads");
 Directory.CreateDirectory(Path.Combine(uploadsRoot, "materials"));
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseForwardedHeaders();
+app.UseMiddleware<ApiExceptionHandlingMiddleware>();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

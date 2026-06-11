@@ -502,6 +502,27 @@ namespace DataAccessLayer.Entities
             modelBuilder.Entity<Availability>()
                 .HasIndex(a => new { a.TutorId, a.DayOfWeek });
 
+            modelBuilder.Entity<Homework>()
+                .HasIndex(h => new { h.LessonId, h.UploadedAt });
+
+            modelBuilder.Entity<Homework>()
+                .HasIndex(h => new { h.BookingId, h.UploadedAt });
+
+            modelBuilder.Entity<Homework>()
+                .HasIndex(h => h.DueDate);
+
+            modelBuilder.Entity<Lesson>()
+                .HasIndex(l => new { l.BookingId, l.ScheduleTime });
+
+            modelBuilder.Entity<MaterialSection>()
+                .HasIndex(s => new { s.AvailabilityId, s.DisplayOrder });
+
+            modelBuilder.Entity<Material>()
+                .HasIndex(m => new { m.AvailabilityId, m.MaterialSectionId, m.CreatedAt });
+
+            modelBuilder.Entity<Submission>()
+                .HasIndex(s => new { s.HomeworkId, s.SubmittedAt });
+
             modelBuilder.Entity<AppMetric>()
     .HasIndex(x => new { x.Type, x.DeviceId });
 

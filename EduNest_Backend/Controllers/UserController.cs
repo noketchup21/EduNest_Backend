@@ -30,7 +30,7 @@ namespace EduNest_Backend.Controllers
 
                 return Ok(users);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred." });
             }
@@ -52,7 +52,7 @@ namespace EduNest_Backend.Controllers
 
                 return Ok(user);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred." });
             }
@@ -77,7 +77,7 @@ namespace EduNest_Backend.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred." });
             }
@@ -99,7 +99,7 @@ namespace EduNest_Backend.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred." });
             }
