@@ -459,6 +459,7 @@ namespace BusinessLayer.Services
                 BookingId = lesson.BookingId,
 
                 AvailabilityId = availability.AvailabilityId,
+                AvailabilitySlot = availability.Slot,
 
                 TutorId = availability.TutorId,
                 TutorUserId = tutor?.UserId ?? 0,
@@ -494,6 +495,7 @@ namespace BusinessLayer.Services
             {
                 MainLessonId = mainLesson.LessonId,
                 AvailabilityId = availability.AvailabilityId,
+                AvailabilitySlot = availability.Slot,
 
                 TutorId = availability.TutorId,
                 TutorUserId = tutor?.UserId ?? 0,

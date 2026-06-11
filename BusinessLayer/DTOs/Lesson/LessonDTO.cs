@@ -10,6 +10,7 @@ namespace BusinessLayer.DTOs.Lesson
         public int BookingId { get; set; }
 
         public int AvailabilityId { get; set; }
+        public int AvailabilitySlot { get; set; }
 
         public int TutorId { get; set; }
         public int TutorUserId { get; set; }
@@ -52,6 +53,7 @@ namespace BusinessLayer.DTOs.Lesson
     {
         public int MainLessonId { get; set; }
         public int AvailabilityId { get; set; }
+        public int AvailabilitySlot { get; set; }
 
         public int TutorId { get; set; }
         public int TutorUserId { get; set; }
