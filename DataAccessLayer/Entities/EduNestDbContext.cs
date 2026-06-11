@@ -253,10 +253,20 @@ namespace DataAccessLayer.Entities
 
             // ── Homework → Booking ────────────────────────────────────────────
             modelBuilder.Entity<Homework>()
+                .Property(h => h.Type)
+                .HasDefaultValue("MultipleChoice");
+
+            modelBuilder.Entity<Homework>()
                 .HasOne(h => h.Booking)
                 .WithMany(b => b.Homeworks)
                 .HasForeignKey(h => h.BookingId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Homework>()
+                .HasOne(h => h.Lesson)
+                .WithMany(l => l.Homeworks)
+                .HasForeignKey(h => h.LessonId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // ── Material → Availability ───────────────────────────────────────
             modelBuilder.Entity<Material>()
@@ -279,7 +289,17 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Submission>()
+                .HasOne(s => s.User)
+                .WithMany(u => u.Submissions)
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Submission>()
                 .HasIndex(s => new { s.HomeworkId, s.StudentId })
+                .IsUnique();
+
+            modelBuilder.Entity<Submission>()
+                .HasIndex(s => new { s.HomeworkId, s.UserId })
                 .IsUnique();
 
             // ── MultipleChoiceQuestion ────────────────────────────────────────
