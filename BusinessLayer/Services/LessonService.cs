@@ -1,4 +1,4 @@
-﻿using BusinessLayer.DTOs.Attendance;
+using BusinessLayer.DTOs.Attendance;
 using BusinessLayer.DTOs.Lesson;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
@@ -28,6 +28,8 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(t => t.UserId == userId);
 
             var query = _db.Lessons
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.User)
                 .Include(l => l.Booking)
                     .ThenInclude(b => b.Availability)
                         .ThenInclude(a => a.Tutor)
@@ -462,7 +464,7 @@ namespace BusinessLayer.Services
                 TutorUserId = tutor?.UserId ?? 0,
                 TutorName = tutorUser?.Name ?? $"Tutor #{availability.TutorId}",
                 TutorAvatarUrl = AvatarUrl(tutorUser),
-
+                StudentName = lesson.Booking.User?.Name ?? $"User #{lesson.Booking.UserId}",
                 SubjectId = availability.SubjectId,
                 SubjectName = availability.Subject?.Name,
 
@@ -497,7 +499,6 @@ namespace BusinessLayer.Services
                 TutorUserId = tutor?.UserId ?? 0,
                 TutorName = tutorUser?.Name ?? $"Tutor #{availability.TutorId}",
                 TutorAvatarUrl = AvatarUrl(tutorUser),
-
                 SubjectId = availability.SubjectId,
                 SubjectName = availability.Subject?.Name,
 
