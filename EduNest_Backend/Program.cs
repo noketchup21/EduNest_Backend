@@ -63,6 +63,8 @@ builder.Services.Configure<PayOSChiSetting>(
 
 builder.Services.Configure<CloudinarySetting>(
     builder.Configuration.GetSection("Cloudinary"));
+builder.Services.Configure<CloudflareR2Setting>(
+    builder.Configuration.GetSection(CloudflareR2Setting.SectionName));
 
 #region ADDSCOPE
 //Repo
@@ -105,6 +107,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IHomeworkService, HomeworkService>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
+builder.Services.AddScoped<IR2StorageService, R2StorageService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
