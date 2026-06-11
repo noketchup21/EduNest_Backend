@@ -13,6 +13,7 @@ namespace BusinessLayer.DTOs.Availability
         public int TutorId { get; set; }
         public int? SubjectId { get; set; }
         public string DayOfWeek { get; set; } = string.Empty;
+        public List<string> DaysOfWeek { get; set; } = new();
         public DateTime StartCourseTime { get; set; }
         public DateTime EndCourseTime { get; set; }
         public TimeSpan StartTime { get; set; }
@@ -38,6 +39,7 @@ namespace BusinessLayer.DTOs.Availability
 
         [Required]
         public string DayOfWeek { get; set; } = string.Empty;
+        public List<string>? DaysOfWeek { get; set; }
 
         [Required]
         public DateTime StartCourseTime { get; set; }
@@ -69,6 +71,7 @@ namespace BusinessLayer.DTOs.Availability
     {
         public int? SubjectId { get; set; }
         public string? DayOfWeek { get; set; }
+        public List<string>? DaysOfWeek { get; set; }
         public DateTime? StartCourseTime { get; set; }
         public DateTime? EndCourseTime { get; set; }
         public TimeSpan? StartTime { get; set; }
