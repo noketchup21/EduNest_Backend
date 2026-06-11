@@ -14,11 +14,28 @@ namespace BusinessLayer.Services
 {
     public sealed class CloudinaryService : ICloudinaryService
     {
+        private const long MaxImageSizeBytes = 5 * 1024 * 1024;
+        private static readonly HashSet<string> AllowedImageContentTypes = new(
+            StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        };
+
         private readonly Cloudinary _cloudinary;
 
         public CloudinaryService(IOptions<CloudinarySetting> options)
         {
             var setting = options.Value;
+
+            if (string.IsNullOrWhiteSpace(setting.CloudName) ||
+                string.IsNullOrWhiteSpace(setting.ApiKey) ||
+                string.IsNullOrWhiteSpace(setting.ApiSecret))
+            {
+                throw new InvalidOperationException(
+                    "Cloudinary settings are missing. Configure Cloudinary:CloudName, ApiKey, and ApiSecret.");
+            }
 
             var account = new Account(
                 setting.CloudName,
@@ -39,10 +56,15 @@ namespace BusinessLayer.Services
             if (file == null || file.Length == 0)
                 throw new InvalidOperationException("File is required.");
 
-            if (!file.ContentType.StartsWith("image/"))
-                throw new InvalidOperationException("Only image files are allowed.");
+            var contentType = file.ContentType?.Trim();
+            if (string.IsNullOrWhiteSpace(contentType) ||
+                !AllowedImageContentTypes.Contains(contentType))
+            {
+                throw new InvalidOperationException(
+                    "Only JPG, PNG, and WebP image files are allowed.");
+            }
 
-            if (file.Length > 5 * 1024 * 1024)
+            if (file.Length > MaxImageSizeBytes)
                 throw new InvalidOperationException("Image must be smaller than 5MB.");
 
             await using var stream = file.OpenReadStream();
@@ -63,10 +85,21 @@ namespace BusinessLayer.Services
                 UniqueFilename = true
             };
 
-            var result = await _cloudinary.UploadAsync(uploadParams);
+            ImageUploadResult result;
+            try
+            {
+                result = await _cloudinary.UploadAsync(uploadParams);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "Image upload failed. Please try again later.",
+                    ex);
+            }
 
             if (result.Error != null)
-                throw new InvalidOperationException(result.Error.Message);
+                throw new InvalidOperationException(
+                    $"Image upload failed: {result.Error.Message}");
 
             return result.PublicId;
         }

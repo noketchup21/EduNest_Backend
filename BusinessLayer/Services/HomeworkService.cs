@@ -269,7 +269,8 @@ namespace BusinessLayer.Services
                             .ThenInclude(o => o.MultipleChoiceQuestion)
                 .Include(h => h.Submissions)
                     .ThenInclude(s => s.EssayAnswers)
-                        .ThenInclude(a => a.Essay);
+                        .ThenInclude(a => a.Essay)
+                .AsSplitQuery();
         }
 
         private IQueryable<Submission> SubmissionQuery()
@@ -282,7 +283,8 @@ namespace BusinessLayer.Services
                     .ThenInclude(a => a.QuestionOption)
                         .ThenInclude(o => o.MultipleChoiceQuestion)
                 .Include(s => s.EssayAnswers)
-                    .ThenInclude(a => a.Essay);
+                    .ThenInclude(a => a.Essay)
+                .AsSplitQuery();
         }
 
         private async Task<Lesson> GetLessonForUserAsync(int userId, int lessonId)

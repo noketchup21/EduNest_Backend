@@ -59,7 +59,7 @@ namespace EduNest_Backend.Controllers
 
             user.Name = request.Name.Trim();
             user.Phone = string.IsNullOrWhiteSpace(request.Phone)
-                ? null
+                ? string.Empty
                 : request.Phone.Trim();
 
             Tutor? tutor = null;
@@ -121,7 +121,7 @@ namespace EduNest_Backend.Controllers
 
             bank.BankName = request.BankName.Trim();
             bank.BankBin = string.IsNullOrWhiteSpace(request.BankBin)
-                ? null
+                ? string.Empty
                 : request.BankBin.Trim();
             bank.AccountNumber = request.AccountNumber.Trim();
             bank.AccountHolderName = request.AccountHolderName.Trim();

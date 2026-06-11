@@ -37,6 +37,7 @@ namespace BusinessLayer.Services
             await EnsureCanViewAvailabilityAsync(userId, availabilityId);
 
             var sections = await _db.MaterialSections
+                .AsNoTracking()
                 .Include(s => s.Materials)
                 .Where(s => s.AvailabilityId == availabilityId)
                 .OrderBy(s => s.DisplayOrder)
@@ -44,6 +45,7 @@ namespace BusinessLayer.Services
                 .ToListAsync();
 
             var orphanMaterials = await _db.Materials
+                .AsNoTracking()
                 .Where(m => m.AvailabilityId == availabilityId && m.MaterialSectionId == null)
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
@@ -159,6 +161,7 @@ namespace BusinessLayer.Services
             UpsertMaterialItemRequest request)
         {
             var material = await _db.Materials
+                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.MaterialId == materialId)
                 ?? throw new KeyNotFoundException("Material not found.");
 
