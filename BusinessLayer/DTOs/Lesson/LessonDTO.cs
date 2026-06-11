@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
@@ -15,6 +15,7 @@ namespace BusinessLayer.DTOs.Lesson
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
         public string? TutorAvatarUrl { get; set; }
+        public string StudentName { get; set; } = string.Empty;
 
         public int? SubjectId { get; set; }
         public string? SubjectName { get; set; }
@@ -56,6 +57,7 @@ namespace BusinessLayer.DTOs.Lesson
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
         public string? TutorAvatarUrl { get; set; }
+        public string StudentName { get; set; } = string.Empty;
 
         public int? SubjectId { get; set; }
         public string? SubjectName { get; set; }
