@@ -103,6 +103,7 @@ builder.Services.AddScoped<IPayoutService, PayoutService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IHomeworkService, HomeworkService>();
+builder.Services.AddScoped<IMaterialService, MaterialService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -169,6 +170,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
