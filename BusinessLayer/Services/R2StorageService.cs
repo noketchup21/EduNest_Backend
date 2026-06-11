@@ -118,9 +118,7 @@ namespace BusinessLayer.Services
             var config = new AmazonS3Config
             {
                 ServiceURL = $"https://{_setting.AccountId}.r2.cloudflarestorage.com",
-                ForcePathStyle = true,
-                AuthenticationRegion = "auto",
-                RegionEndpoint = RegionEndpoint.USEast1
+                ForcePathStyle = true
             };
 
             return new AmazonS3Client(credentials, config);
