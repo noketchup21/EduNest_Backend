@@ -12,26 +12,10 @@ namespace BusinessLayer.Services
     public sealed class R2StorageService : IR2StorageService
     {
         private readonly CloudflareR2Setting _setting;
-        private readonly IAmazonS3 _s3;
 
         public R2StorageService(IOptions<CloudflareR2Setting> options)
         {
-            _setting = options.Value;
-            ValidateSettings(_setting);
-
-            var credentials = new BasicAWSCredentials(
-                _setting.AccessKeyId,
-                _setting.SecretAccessKey);
-
-            var config = new AmazonS3Config
-            {
-                ServiceURL = $"https://{_setting.AccountId}.r2.cloudflarestorage.com",
-                ForcePathStyle = true,
-                AuthenticationRegion = "auto",
-                RegionEndpoint = RegionEndpoint.USEast1
-            };
-
-            _s3 = new AmazonS3Client(credentials, config);
+            _setting = options.Value ?? new CloudflareR2Setting();
         }
 
         public async Task<R2UploadResult> UploadMaterialAsync(
@@ -56,10 +40,22 @@ namespace BusinessLayer.Services
                 ContentType = string.IsNullOrWhiteSpace(file.ContentType)
                     ? "application/octet-stream"
                     : file.ContentType,
-                AutoCloseStream = false
+                AutoCloseStream = false,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true
             };
 
-            await _s3.PutObjectAsync(request, cancellationToken);
+            try
+            {
+                using var s3 = CreateClient();
+                await s3.PutObjectAsync(request, cancellationToken);
+            }
+            catch (AmazonS3Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Cloudflare R2 upload failed ({ex.StatusCode}, {ex.ErrorCode}). Check bucket name, token permissions, and R2 credentials.",
+                    ex);
+            }
 
             return new R2UploadResult(
                 ObjectKey: key,
@@ -94,18 +90,40 @@ namespace BusinessLayer.Services
                     $"attachment; filename=\"{downloadFileName.Replace("\"", string.Empty)}\"";
             }
 
-            return Task.FromResult(_s3.GetPreSignedURL(request));
+            using var s3 = CreateClient();
+            return Task.FromResult(s3.GetPreSignedURL(request));
         }
 
         public async Task DeleteObjectAsync(string objectKey)
         {
             if (string.IsNullOrWhiteSpace(objectKey)) return;
 
-            await _s3.DeleteObjectAsync(new DeleteObjectRequest
+            using var s3 = CreateClient();
+            await s3.DeleteObjectAsync(new DeleteObjectRequest
             {
                 BucketName = _setting.BucketName,
                 Key = objectKey
             });
+        }
+
+        private IAmazonS3 CreateClient()
+        {
+            ValidateSettings(_setting);
+            AWSConfigsS3.UseSignatureVersion4 = true;
+
+            var credentials = new BasicAWSCredentials(
+                _setting.AccessKeyId,
+                _setting.SecretAccessKey);
+
+            var config = new AmazonS3Config
+            {
+                ServiceURL = $"https://{_setting.AccountId}.r2.cloudflarestorage.com",
+                ForcePathStyle = true,
+                AuthenticationRegion = "auto",
+                RegionEndpoint = RegionEndpoint.USEast1
+            };
+
+            return new AmazonS3Client(credentials, config);
         }
 
         private string? PublicUrl(string objectKey)
