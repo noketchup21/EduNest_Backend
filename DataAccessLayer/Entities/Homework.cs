@@ -15,6 +15,10 @@ namespace DataAccessLayer.Entities
         public int HomeworkId { get; set; }
 
         public int BookingId { get; set; }             // ← links to Booking
+        public int? LessonId { get; set; }
+
+        [Required, MaxLength(30)]
+        public string Type { get; set; } = "MultipleChoice";
 
         [Required, MaxLength(255)]
         public string Title { get; set; }
@@ -31,6 +35,9 @@ namespace DataAccessLayer.Entities
         // Navigation properties
         [ForeignKey("BookingId")]
         public virtual Booking Booking { get; set; }
+
+        [ForeignKey("LessonId")]
+        public virtual Lesson? Lesson { get; set; }
 
         public virtual ICollection<Submission> Submissions { get; set; } = new List<Submission>();
         public virtual ICollection<MultipleChoiceQuestion> MultipleChoiceQuestions { get; set; } = new List<MultipleChoiceQuestion>();

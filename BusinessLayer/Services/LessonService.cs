@@ -86,14 +86,38 @@ namespace BusinessLayer.Services
         }
 
         public async Task<LessonDetailResponse> GetLessonDetailAsync(
-            int tutorUserId,
+            int userId,
             int lessonId)
         {
-            var lesson = await GetTutorLessonAsync(tutorUserId, lessonId);
+            var lesson = await _db.Lessons
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Parent)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Student)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Tutor)
+                            .ThenInclude(t => t.User)
+                .Include(l => l.Booking)
+                    .ThenInclude(b => b.Availability)
+                        .ThenInclude(a => a.Subject)
+                .Include(l => l.Attendances)
+                .FirstOrDefaultAsync(l => l.LessonId == lessonId)
+                ?? throw new KeyNotFoundException("Lesson not found.");
 
-            var groupLessons = await GetLessonGroupAsync(
-                lesson.Booking.AvailabilityId,
-                lesson.ScheduleTime);
+            var isTutor = await IsTutorForLessonAsync(userId, lesson);
+            var isLearner = await IsLearnerForLessonAsync(userId, lesson);
+
+            if (!isTutor && !isLearner)
+                throw new UnauthorizedAccessException("You cannot access this lesson.");
+
+            var groupLessons = isTutor
+                ? await GetLessonGroupAsync(
+                    lesson.Booking.AvailabilityId,
+                    lesson.ScheduleTime)
+                : new List<Lesson> { lesson };
 
             return ToLessonDetailResponse(
                 lesson,
@@ -368,6 +392,33 @@ namespace BusinessLayer.Services
 
             if (lesson.Booking.Availability.TutorId != tutor.TutorId)
                 throw new UnauthorizedAccessException("This lesson does not belong to the tutor.");
+        }
+
+        private async Task<bool> IsTutorForLessonAsync(int userId, Lesson lesson)
+        {
+            var tutorId = await _db.Tutors
+                .Where(t => t.UserId == userId)
+                .Select(t => (int?)t.TutorId)
+                .FirstOrDefaultAsync();
+
+            return tutorId.HasValue && lesson.Booking.Availability.TutorId == tutorId.Value;
+        }
+
+        private async Task<bool> IsLearnerForLessonAsync(int userId, Lesson lesson)
+        {
+            if (lesson.Booking.UserId == userId ||
+                lesson.Booking.Parent?.UserId == userId ||
+                lesson.Booking.Student?.UserId == userId)
+            {
+                return true;
+            }
+
+            var parentId = await _db.Parents
+                .Where(p => p.UserId == userId)
+                .Select(p => (int?)p.ParentId)
+                .FirstOrDefaultAsync();
+
+            return parentId.HasValue && lesson.Booking.Student?.ParentId == parentId.Value;
         }
 
         private async Task<Tutor> GetTutorByUserIdAsync(int userId)

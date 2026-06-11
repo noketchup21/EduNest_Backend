@@ -102,6 +102,7 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IPayoutService, PayoutService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IHomeworkService, HomeworkService>();
 builder.Services.AddScoped<IMeetingLinkService, GoogleMeetLinkService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
