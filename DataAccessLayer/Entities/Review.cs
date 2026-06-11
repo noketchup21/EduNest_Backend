@@ -19,6 +19,7 @@ namespace DataAccessLayer.Entities
         public int BookingId { get; set; }
 
         public int? ParentId { get; set; }
+        public int? UserId { get; set; }
 
         [Column(TypeName = "decimal(3,2)")]
         public decimal Rating { get; set; }
@@ -36,6 +37,9 @@ namespace DataAccessLayer.Entities
         public virtual Booking Booking { get; set; }
 
         [ForeignKey("ParentId")]
-        public virtual Parent Parent { get; set; }
+        public virtual Parent? Parent { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 }

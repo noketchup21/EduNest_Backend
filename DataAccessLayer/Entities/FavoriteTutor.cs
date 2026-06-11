@@ -15,7 +15,8 @@ namespace DataAccessLayer.Entities
         public int FavoriteId { get; set; }
 
         public int TutorId { get; set; }
-        public int ParentId { get; set; }
+        public int? ParentId { get; set; }
+        public int? UserId { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -24,6 +25,9 @@ namespace DataAccessLayer.Entities
         public virtual Tutor Tutor { get; set; }
 
         [ForeignKey("ParentId")]
-        public virtual Parent Parent { get; set; }
+        public virtual Parent? Parent { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 }

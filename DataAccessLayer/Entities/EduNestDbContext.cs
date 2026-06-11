@@ -241,6 +241,16 @@ namespace DataAccessLayer.Entities
                 .HasForeignKey(r => r.ParentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.User)
+                .WithMany(u => u.Reviews)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => new { r.UserId, r.BookingId })
+                .IsUnique();
+
             // ── Homework → Booking ────────────────────────────────────────────
             modelBuilder.Entity<Homework>()
                 .HasOne(h => h.Booking)
@@ -380,6 +390,12 @@ namespace DataAccessLayer.Entities
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<FavoriteTutor>()
+                .HasOne(f => f.User)
+                .WithMany(u => u.FavoriteTutors)
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FavoriteTutor>()
                 .HasOne(f => f.Tutor)
                 .WithMany(t => t.FavoriteTutors)
                 .HasForeignKey(f => f.TutorId)
@@ -387,6 +403,10 @@ namespace DataAccessLayer.Entities
 
             modelBuilder.Entity<FavoriteTutor>()
                 .HasIndex(f => new { f.ParentId, f.TutorId })
+                .IsUnique();
+
+            modelBuilder.Entity<FavoriteTutor>()
+                .HasIndex(f => new { f.UserId, f.TutorId })
                 .IsUnique();
 
             // ── TutorReport ─────────────────────────────────────────────────
