@@ -53,6 +53,7 @@ namespace DataAccessLayer.Entities
         public virtual Subject Subject { get; set; }
 
         public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+        public virtual ICollection<MaterialSection> MaterialSections { get; set; } = new List<MaterialSection>();
         public virtual ICollection<Material> Materials { get; set; } = new List<Material>();
     }
 }

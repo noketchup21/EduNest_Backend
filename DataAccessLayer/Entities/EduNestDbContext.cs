@@ -30,6 +30,7 @@ namespace DataAccessLayer.Entities
 
         // ── Learning Content ──────────────────────────────────────────────────
         public DbSet<Homework> Homeworks { get; set; }
+        public DbSet<MaterialSection> MaterialSections { get; set; }
         public DbSet<Material> Materials { get; set; }
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<MultipleChoiceQuestion> MultipleChoiceQuestions { get; set; }
@@ -273,6 +274,18 @@ namespace DataAccessLayer.Entities
                 .HasOne(m => m.Availability)
                 .WithMany(a => a.Materials)
                 .HasForeignKey(m => m.AvailabilityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MaterialSection>()
+                .HasOne(s => s.Availability)
+                .WithMany(a => a.MaterialSections)
+                .HasForeignKey(s => s.AvailabilityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Material>()
+                .HasOne(m => m.Section)
+                .WithMany(s => s.Materials)
+                .HasForeignKey(m => m.MaterialSectionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ── Submission ────────────────────────────────────────────────────
