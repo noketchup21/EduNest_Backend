@@ -479,7 +479,8 @@ namespace BusinessLayer.Services
                 {
                     EssayId = essay.EssayId,
                     AnswerText = answer.AnswerText.Trim(),
-                    Score = 0
+                    Score = 0,
+                    Feedback = string.Empty
                 });
             }
         }
