@@ -246,6 +246,12 @@ app.UseAuthorization();
 
 app.UseRateLimiting();
 
+app.MapGet("/account-deletion", async context =>
+{
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(Path.Combine(webRootPath, "account-deletion.html"));
+});
+
 app.MapControllers();
 
 app.Run();
