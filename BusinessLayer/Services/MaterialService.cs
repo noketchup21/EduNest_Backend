@@ -15,13 +15,21 @@ namespace BusinessLayer.Services
             "Completed"
         };
 
+        private const long MaxMaterialFileSize = 10 * 1024 * 1024;
+        private const string R2Prefix = "r2://";
+
         private readonly EduNestDbContext _db;
         private readonly IWebHostEnvironment _environment;
+        private readonly IR2StorageService _r2Storage;
 
-        public MaterialService(EduNestDbContext db, IWebHostEnvironment environment)
+        public MaterialService(
+            EduNestDbContext db,
+            IWebHostEnvironment environment,
+            IR2StorageService r2Storage)
         {
             _db = db;
             _environment = environment;
+            _r2Storage = r2Storage;
         }
 
         public async Task<List<MaterialSectionResponse>> GetByAvailabilityAsync(int userId, int availabilityId)
@@ -175,12 +183,16 @@ namespace BusinessLayer.Services
 
             if (request.File != null && request.File.Length > 0)
             {
-                var saved = await SaveFileAsync(request.File);
+                var oldObjectKey = R2ObjectKey(material.FileUrl);
+                var saved = await SaveFileAsync(request.File, material.AvailabilityId);
                 material.FileUrl = saved.FileUrl;
                 material.FileName = saved.FileName;
                 material.ContentType = saved.ContentType;
                 material.FileSize = saved.FileSize;
                 material.MaterialType = InferMaterialType(saved.FileName, saved.ContentType, saved.FileUrl);
+
+                if (oldObjectKey != null)
+                    await _r2Storage.DeleteObjectAsync(oldObjectKey);
             }
             else
             {
@@ -210,6 +222,10 @@ namespace BusinessLayer.Services
 
             await EnsureTutorOwnsAvailabilityAsync(tutorUserId, material.AvailabilityId);
 
+            var objectKey = R2ObjectKey(material.FileUrl);
+            if (objectKey != null)
+                await _r2Storage.DeleteObjectAsync(objectKey);
+
             _db.Materials.Remove(material);
             await _db.SaveChangesAsync();
         }
@@ -222,6 +238,18 @@ namespace BusinessLayer.Services
 
             if (string.IsNullOrWhiteSpace(material.FileUrl))
                 throw new KeyNotFoundException("Material file not found.");
+
+            var r2ObjectKey = R2ObjectKey(material.FileUrl);
+            if (r2ObjectKey != null)
+            {
+                return new MaterialDownloadResult(
+                    FilePath: null,
+                    RedirectUrl: await _r2Storage.CreateDownloadUrlAsync(
+                        r2ObjectKey,
+                        material.FileName ?? material.Title),
+                    FileName: material.FileName ?? material.Title,
+                    ContentType: material.ContentType ?? "application/octet-stream");
+            }
 
             if (Uri.TryCreate(material.FileUrl, UriKind.Absolute, out _))
             {
@@ -265,7 +293,7 @@ namespace BusinessLayer.Services
 
             if (request.File != null && request.File.Length > 0)
             {
-                var saved = await SaveFileAsync(request.File);
+                var saved = await SaveFileAsync(request.File, section.AvailabilityId);
                 material.FileUrl = saved.FileUrl;
                 material.FileName = saved.FileName;
                 material.ContentType = saved.ContentType;
@@ -379,33 +407,19 @@ namespace BusinessLayer.Services
             }
         }
 
-        private async Task<SavedMaterialFile> SaveFileAsync(IFormFile file)
+        private async Task<SavedMaterialFile> SaveFileAsync(
+            IFormFile file,
+            int availabilityId)
         {
-            if (file.Length > 50 * 1024 * 1024)
-                throw new InvalidOperationException("Material file must be smaller than 50MB.");
+            if (file.Length > MaxMaterialFileSize)
+                throw new InvalidOperationException("Material file must be 10MB or smaller.");
 
-            var uploadsRoot = Path.Combine(
-                _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"),
-                "uploads",
-                "materials");
-
-            Directory.CreateDirectory(uploadsRoot);
-
-            var extension = Path.GetExtension(file.FileName);
-            var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".bin" : extension;
-            var fileName = $"{Guid.NewGuid():N}{safeExtension}";
-            var path = Path.Combine(uploadsRoot, fileName);
-
-            await using (var stream = File.Create(path))
-            {
-                await file.CopyToAsync(stream);
-            }
-
+            var uploaded = await _r2Storage.UploadMaterialAsync(file, availabilityId);
             return new SavedMaterialFile(
-                FileUrl: $"/uploads/materials/{fileName}",
-                FileName: file.FileName,
-                ContentType: file.ContentType,
-                FileSize: file.Length);
+                FileUrl: $"{R2Prefix}{uploaded.ObjectKey}",
+                FileName: uploaded.FileName,
+                ContentType: uploaded.ContentType,
+                FileSize: uploaded.FileSize);
         }
 
         private static MaterialSectionResponse ToSectionResponse(MaterialSection section)
@@ -454,6 +468,9 @@ namespace BusinessLayer.Services
             var url = material.FileUrl?.Trim();
             if (string.IsNullOrWhiteSpace(url)) return null;
 
+            if (R2ObjectKey(url) != null)
+                return $"/api/material/items/{material.MaterialId}/download";
+
             if (url.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
                 return $"/api/material/items/{material.MaterialId}/download";
 
@@ -464,6 +481,16 @@ namespace BusinessLayer.Services
             }
 
             return url;
+        }
+
+        private static string? R2ObjectKey(string? value)
+        {
+            var text = value?.Trim();
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            return text.StartsWith(R2Prefix, StringComparison.OrdinalIgnoreCase)
+                ? text[R2Prefix.Length..]
+                : null;
         }
 
         private static string? NormalizeOptional(string? value)
