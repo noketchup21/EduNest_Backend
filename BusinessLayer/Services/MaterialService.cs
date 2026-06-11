@@ -214,6 +214,38 @@ namespace BusinessLayer.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task<MaterialDownloadResult> GetDownloadAsync(int materialId)
+        {
+            var material = await _db.Materials
+                .FirstOrDefaultAsync(m => m.MaterialId == materialId)
+                ?? throw new KeyNotFoundException("Material not found.");
+
+            if (string.IsNullOrWhiteSpace(material.FileUrl))
+                throw new KeyNotFoundException("Material file not found.");
+
+            if (Uri.TryCreate(material.FileUrl, UriKind.Absolute, out _))
+            {
+                return new MaterialDownloadResult(
+                    FilePath: null,
+                    RedirectUrl: material.FileUrl,
+                    FileName: material.FileName ?? material.Title,
+                    ContentType: material.ContentType ?? "application/octet-stream");
+            }
+
+            var relativePath = material.FileUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var filePath = Path.Combine(webRoot, relativePath);
+
+            if (!File.Exists(filePath))
+                throw new KeyNotFoundException("Uploaded file is missing from storage.");
+
+            return new MaterialDownloadResult(
+                FilePath: filePath,
+                RedirectUrl: null,
+                FileName: material.FileName ?? Path.GetFileName(filePath),
+                ContentType: material.ContentType ?? "application/octet-stream");
+        }
+
         private async Task<MaterialResponse> CreateItemInSectionAsync(
             int tutorUserId,
             MaterialSection section,

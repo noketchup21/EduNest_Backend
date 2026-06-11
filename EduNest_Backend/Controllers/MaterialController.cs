@@ -31,6 +31,28 @@ namespace EduNest_Backend.Controllers
             }
         }
 
+        [AllowAnonymous]
+        [HttpGet("items/{materialId:int}/download")]
+        public async Task<IActionResult> Download(int materialId)
+        {
+            try
+            {
+                var file = await _materialService.GetDownloadAsync(materialId);
+
+                if (!string.IsNullOrWhiteSpace(file.RedirectUrl))
+                    return Redirect(file.RedirectUrl);
+
+                return PhysicalFile(
+                    file.FilePath!,
+                    file.ContentType,
+                    file.FileName);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex);
+            }
+        }
+
         [Authorize(Roles = "Tutor")]
         [HttpPost("availability/{availabilityId:int}/sections")]
         public async Task<ActionResult<MaterialSectionResponse>> CreateSection(
