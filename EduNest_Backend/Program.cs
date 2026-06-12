@@ -252,6 +252,12 @@ app.MapGet("/account-deletion", async context =>
     await context.Response.SendFileAsync(Path.Combine(webRootPath, "account-deletion.html"));
 });
 
+app.MapGet("/feedback", async context =>
+{
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.SendFileAsync(Path.Combine(webRootPath, "feedback.html"));
+});
+
 app.MapControllers();
 
 app.Run();
