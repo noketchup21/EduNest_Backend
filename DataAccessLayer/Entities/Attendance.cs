@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -15,12 +15,13 @@ namespace DataAccessLayer.Entities
         public int AttendanceId { get; set; }          // proper PK
 
         public int LessonId { get; set; }
-        public int StudentId { get; set; }
+        public int? StudentId { get; set; }
+        public int? UserId { get; set; }
 
         [Required, MaxLength(20)]
         public string Status { get; set; }             // Present / Absent / Late
 
-        public DateTime? AttendedAt { get; set; }      // nullable — null if absent
+        public DateTime? AttendedAt { get; set; }      // nullable � null if absent
 
         [MaxLength(500)]
         public string Note { get; set; }
@@ -32,6 +33,10 @@ namespace DataAccessLayer.Entities
         public virtual Lesson Lesson { get; set; }
 
         [ForeignKey("StudentId")]
-        public virtual Student Student { get; set; }
+        public virtual Student? Student { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User? User { get; set; }
     }
 }
+

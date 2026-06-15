@@ -185,25 +185,33 @@ namespace BusinessLayer.Services
                 throw new InvalidOperationException("Cannot update attendance after lesson is completed.");
 
 
+            if (!lesson.Booking.UserId.HasValue)
+                throw new InvalidOperationException("Booking learner user is missing.");
+
             var normalizedStatus = NormalizeAttendanceStatus(request.Status);
-            var attendance = lesson.Attendances.FirstOrDefault();
+            var studentId = await ResolveAttendanceStudentIdAsync(lesson.Booking);
+            var learnerUserId = lesson.Booking.UserId.Value;
+
+            var attendance = lesson.Attendances.FirstOrDefault(a =>
+                a.UserId == learnerUserId ||
+                (studentId.HasValue && a.StudentId == studentId.Value));
 
             if (attendance == null)
             {
-                // Resolve the Student record from the booking's UserId
-                var student = await _db.Students
-                    .FirstOrDefaultAsync(s => s.UserId == lesson.Booking.UserId)
-                    ?? throw new InvalidOperationException(
-                        $"No student profile found for user #{lesson.Booking.UserId}.");
-
                 attendance = new Attendance
                 {
                     LessonId = lesson.LessonId,
-                    StudentId = student.StudentId,
+                    StudentId = studentId,
+                    UserId = learnerUserId,
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _db.Attendances.Add(attendance);
+            }
+            else
+            {
+                attendance.StudentId ??= studentId;
+                attendance.UserId ??= learnerUserId;
             }
 
             attendance.Status = normalizedStatus;
@@ -396,6 +404,38 @@ namespace BusinessLayer.Services
                 throw new UnauthorizedAccessException("This lesson does not belong to the tutor.");
         }
 
+        private async Task<int?> ResolveAttendanceStudentIdAsync(Booking booking)
+        {
+            if (booking.StudentId.HasValue)
+                return booking.StudentId.Value;
+
+            if (booking.UserId.HasValue)
+            {
+                var studentId = await _db.Students
+                    .Where(s => s.UserId == booking.UserId.Value)
+                    .Select(s => (int?)s.StudentId)
+                    .FirstOrDefaultAsync();
+
+                if (studentId.HasValue)
+                    return studentId.Value;
+
+                var parentId = await _db.Parents
+                    .Where(p => p.UserId == booking.UserId.Value)
+                    .Select(p => (int?)p.ParentId)
+                    .FirstOrDefaultAsync();
+
+                if (parentId.HasValue)
+                {
+                    return await _db.Students
+                        .Where(s => s.ParentId == parentId.Value)
+                        .OrderBy(s => s.StudentId)
+                        .Select(s => (int?)s.StudentId)
+                        .FirstOrDefaultAsync();
+                }
+            }
+
+            return null;
+        }
         private async Task<bool> IsTutorForLessonAsync(int userId, Lesson lesson)
         {
             var tutorId = await _db.Tutors
@@ -541,3 +581,4 @@ namespace BusinessLayer.Services
         }
     }
 }
+
