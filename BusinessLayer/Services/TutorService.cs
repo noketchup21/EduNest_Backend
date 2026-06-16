@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using BusinessLayer.DTOs.Profile;
 using BusinessLayer.DTOs.Tutor;
@@ -15,6 +16,8 @@ namespace BusinessLayer.Services
 {
     public class TutorService : ITutorService
     {
+        private const int MaxCertificateImages = 5;
+
         private readonly ITutorRepository _tutorRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICloudinaryService _cloudinaryService;
@@ -182,16 +185,24 @@ namespace BusinessLayer.Services
                 folder,
                 "cccd_back");
 
-            var certificatePublicId = await _cloudinaryService.UploadAuthenticatedImageAsync(
-                request.CertificateImage,
-                folder,
-                "certificate");
+            var certificateImages = GetCertificateImages(request);
+            var certificatePublicIds = new List<string>();
+
+            for (var i = 0; i < certificateImages.Count; i++)
+            {
+                var certificatePublicId = await _cloudinaryService.UploadAuthenticatedImageAsync(
+                    certificateImages[i],
+                    folder,
+                    $"certificate_{i + 1}");
+
+                certificatePublicIds.Add(certificatePublicId);
+            }
 
             tutor.NationalIdNumber = request.NationalIdNumber.Trim();
 
             tutor.CccdFrontPublicId = cccdFrontPublicId;
             tutor.CccdBackPublicId = cccdBackPublicId;
-            tutor.CertificatePublicId = certificatePublicId;
+            tutor.CertificatePublicId = SerializeCertificatePublicIds(certificatePublicIds);
 
             tutor.IsVerified = false;
             tutor.VerificationStatus = "Pending";
@@ -258,9 +269,9 @@ namespace BusinessLayer.Services
                     ? null
                     : _cloudinaryService.GenerateSignedImageUrl(tutor.CccdBackPublicId),
 
-                CertificateImageUrl = string.IsNullOrWhiteSpace(tutor.CertificatePublicId)
-                    ? null
-                    : _cloudinaryService.GenerateSignedImageUrl(tutor.CertificatePublicId),
+                CertificateImageUrl = GenerateCertificateImageUrls(tutor.CertificatePublicId)
+                    .FirstOrDefault(),
+                CertificateImageUrls = GenerateCertificateImageUrls(tutor.CertificatePublicId),
 
                 BankName = tutor.BankAccount?.BankName,
                 AccountNumber = tutor.BankAccount?.AccountNumber,
@@ -271,6 +282,78 @@ namespace BusinessLayer.Services
                 VerificationReviewedAt = tutor.VerificationReviewedAt,
                 VerificationRejectReason = tutor.VerificationRejectReason
             };
+        }
+
+        private static List<Microsoft.AspNetCore.Http.IFormFile> GetCertificateImages(
+            SubmitTutorVerificationRequest request)
+        {
+            var images = request.CertificateImages
+                .Where(file => file != null && file.Length > 0)
+                .ToList();
+
+            if (images.Count == 0 &&
+                request.CertificateImage != null &&
+                request.CertificateImage.Length > 0)
+            {
+                images.Add(request.CertificateImage);
+            }
+
+            images = images
+                .Take(MaxCertificateImages + 1)
+                .ToList();
+
+            if (images.Count == 0)
+            {
+                throw new InvalidOperationException("At least one certificate image is required.");
+            }
+
+            if (images.Count > MaxCertificateImages)
+            {
+                throw new InvalidOperationException("Maximum 5 certificate images are allowed.");
+            }
+
+            return images;
+        }
+
+        private static string SerializeCertificatePublicIds(List<string> publicIds)
+        {
+            return publicIds.Count == 1
+                ? publicIds[0]
+                : JsonSerializer.Serialize(publicIds);
+        }
+
+        private List<string> GenerateCertificateImageUrls(string? value)
+        {
+            return ParseCertificatePublicIds(value)
+                .Select(publicId => _cloudinaryService.GenerateSignedImageUrl(publicId))
+                .ToList();
+        }
+
+        private static List<string> ParseCertificatePublicIds(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return new List<string>();
+            }
+
+            var trimmed = value.Trim();
+
+            if (!trimmed.StartsWith("["))
+            {
+                return new List<string> { trimmed };
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(trimmed)?
+                    .Where(publicId => !string.IsNullOrWhiteSpace(publicId))
+                    .Select(publicId => publicId.Trim())
+                    .ToList() ?? new List<string>();
+            }
+            catch (JsonException)
+            {
+                return new List<string> { trimmed };
+            }
         }
 
     }

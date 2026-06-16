@@ -19,8 +19,9 @@ namespace BusinessLayer.DTOs.Tutor
         [Required]
         public IFormFile CccdBackImage { get; set; } = null!;
 
-        [Required]
-        public IFormFile CertificateImage { get; set; } = null!;
+        public IFormFile? CertificateImage { get; set; }
+
+        public List<IFormFile> CertificateImages { get; set; } = new();
 
         [Required]
         public string BankName { get; set; } = string.Empty;
@@ -56,6 +57,7 @@ namespace BusinessLayer.DTOs.Tutor
         public string? CccdFrontImageUrl { get; set; }
         public string? CccdBackImageUrl { get; set; }
         public string? CertificateImageUrl { get; set; }
+        public List<string> CertificateImageUrls { get; set; } = new();
 
         public string? BankName { get; set; }
         public string? AccountNumber { get; set; }
