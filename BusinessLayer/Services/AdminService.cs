@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using BusinessLayer.DTOs.Admin;
 using BusinessLayer.DTOs.Payment;
@@ -606,9 +607,9 @@ namespace BusinessLayer.Services
                     ? null
                     : _cloudinaryService.GenerateSignedImageUrl(tutor.CccdBackPublicId),
 
-                CertificateImageUrl = string.IsNullOrWhiteSpace(tutor.CertificatePublicId)
-                    ? null
-                    : _cloudinaryService.GenerateSignedImageUrl(tutor.CertificatePublicId),
+                CertificateImageUrl = GenerateCertificateImageUrls(tutor.CertificatePublicId)
+                    .FirstOrDefault(),
+                CertificateImageUrls = GenerateCertificateImageUrls(tutor.CertificatePublicId),
 
                 BankName = tutor.BankAccount?.BankName,
                 BankBin = tutor.BankAccount?.BankBin,
@@ -620,6 +621,40 @@ namespace BusinessLayer.Services
                 VerificationReviewedAt = tutor.VerificationReviewedAt,
                 VerificationRejectReason = tutor.VerificationRejectReason,
             };
+        }
+
+        private List<string> GenerateCertificateImageUrls(string? value)
+        {
+            return ParseCertificatePublicIds(value)
+                .Select(publicId => _cloudinaryService.GenerateSignedImageUrl(publicId))
+                .ToList();
+        }
+
+        private static List<string> ParseCertificatePublicIds(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return new List<string>();
+            }
+
+            var trimmed = value.Trim();
+
+            if (!trimmed.StartsWith("["))
+            {
+                return new List<string> { trimmed };
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(trimmed)?
+                    .Where(publicId => !string.IsNullOrWhiteSpace(publicId))
+                    .Select(publicId => publicId.Trim())
+                    .ToList() ?? new List<string>();
+            }
+            catch (JsonException)
+            {
+                return new List<string> { trimmed };
+            }
         }
 
         private static PayoutResponse ToPayoutResponse(Payout payout)
