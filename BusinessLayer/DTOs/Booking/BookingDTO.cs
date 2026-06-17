@@ -22,6 +22,7 @@ namespace BusinessLayer.DTOs.Booking
         public int AvailabilityId { get; set; }
         public int UserId { get; set; }
         public int TutorId { get; set; }
+        public string TutorName { get; set; } = string.Empty;
         public int? SubjectId { get; set; }
         public decimal PriceAtBooking { get; set; }
         public string Status { get; set; } = string.Empty;

@@ -28,6 +28,8 @@ namespace BusinessLayer.Services
             var availability = await _db.Availabilities
                 .Include(a => a.Bookings)
                     .ThenInclude(b => b.Payments)
+                .Include(a => a.Tutor)
+                    .ThenInclude(t => t.User)
                 .FirstOrDefaultAsync(a =>
                     a.AvailabilityId == request.AvailabilityId &&
                     a.Status == "Active")
@@ -50,6 +52,8 @@ namespace BusinessLayer.Services
 
             var existingPendingBooking = await _db.Bookings
                 .Include(b => b.Availability)
+                    .ThenInclude(a => a.Tutor)
+                        .ThenInclude(t => t.User)
                 .FirstOrDefaultAsync(b =>
                     b.UserId == user.UserId &&
                     b.AvailabilityId == availability.AvailabilityId &&
@@ -89,6 +93,8 @@ namespace BusinessLayer.Services
 
             var bookings = await _db.Bookings
                 .Include(b => b.Availability)
+                    .ThenInclude(a => a.Tutor)
+                        .ThenInclude(t => t.User)
                 .Where(b => b.UserId == userId && !b.IsDeleted)
                 .OrderByDescending(b => b.CreatedAt)
                 .ToListAsync();
@@ -106,6 +112,8 @@ namespace BusinessLayer.Services
             var booking = await _db.Bookings
                 .Include(b => b.Payments)
                 .Include(b => b.Availability)
+                    .ThenInclude(a => a.Tutor)
+                        .ThenInclude(t => t.User)
                 .FirstOrDefaultAsync(b =>
                     b.BookingId == bookingId &&
                     b.UserId == userId &&
@@ -177,6 +185,7 @@ namespace BusinessLayer.Services
                 AvailabilityId = booking.AvailabilityId,
                 UserId = booking.UserId ?? 0,
                 TutorId = availability.TutorId,
+                TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
                 SubjectId = availability.SubjectId,
                 PriceAtBooking = booking.PriceAtBooking,
                 Status = booking.Status,
