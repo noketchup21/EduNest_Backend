@@ -187,6 +187,11 @@ namespace BusinessLayer.Services
                 TutorId = availability.TutorId,
                 TutorName = availability.Tutor?.User?.Name ?? $"Tutor #{availability.TutorId}",
                 SubjectId = availability.SubjectId,
+                DayOfWeek = availability.DayOfWeek,
+                StartCourseTime = availability.StartCourseTime,
+                EndCourseTime = availability.EndCourseTime,
+                StartTime = availability.StartTime,
+                EndTime = availability.EndTime,
                 PriceAtBooking = booking.PriceAtBooking,
                 Status = booking.Status,
                 CreatedAt = booking.CreatedAt

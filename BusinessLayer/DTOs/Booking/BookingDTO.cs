@@ -24,6 +24,11 @@ namespace BusinessLayer.DTOs.Booking
         public int TutorId { get; set; }
         public string TutorName { get; set; } = string.Empty;
         public int? SubjectId { get; set; }
+        public string DayOfWeek { get; set; } = string.Empty;
+        public DateTime StartCourseTime { get; set; }
+        public DateTime EndCourseTime { get; set; }
+        public TimeSpan StartTime { get; set; }
+        public TimeSpan EndTime { get; set; }
         public decimal PriceAtBooking { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
