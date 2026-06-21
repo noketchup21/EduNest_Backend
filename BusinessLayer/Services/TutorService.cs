@@ -16,22 +16,31 @@ namespace BusinessLayer.Services
 {
     public class TutorService : ITutorService
     {
-        private const int MaxCertificateImages = 5;
+        private const int MaxCertificateImages = 3;
+        private const long MaxTranscriptDocumentBytes = 2 * 1024 * 1024;
+        private static readonly HashSet<string> AllowedTranscriptExtensions = new(
+            StringComparer.OrdinalIgnoreCase)
+        {
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".txt", ".csv"
+        };
 
         private readonly ITutorRepository _tutorRepository;
         private readonly IUserRepository _userRepository;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IR2StorageService _r2StorageService;
         private readonly EduNestDbContext _db;
 
         public TutorService(
             ITutorRepository tutorRepository,
             IUserRepository userRepository,
             ICloudinaryService cloudinaryService,
+            IR2StorageService r2StorageService,
             EduNestDbContext db)
         {
             _tutorRepository = tutorRepository;
             _userRepository = userRepository;
             _cloudinaryService = cloudinaryService;
+            _r2StorageService = r2StorageService;
             _db = db;
         }
 
@@ -154,7 +163,7 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(t => t.UserId == tutorUserId)
                 ?? throw new KeyNotFoundException("Tutor profile not found.");
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
         public async Task<TutorVerificationResponse> SubmitTutorVerificationAsync(
@@ -172,6 +181,8 @@ namespace BusinessLayer.Services
                 throw new InvalidOperationException(
                     "Your tutor profile has already been approved.");
             }
+
+            ValidateTranscriptDocument(request.TranscriptDocument);
 
             var folder = $"edunest/tutor-verification/tutor-{tutor.TutorId}";
 
@@ -196,6 +207,14 @@ namespace BusinessLayer.Services
                     $"certificate_{i + 1}");
 
                 certificatePublicIds.Add(certificatePublicId);
+            }
+
+            if (request.TranscriptDocument is { Length: > 0 } transcriptDocument)
+            {
+                var upload = await _r2StorageService.UploadTutorDocumentAsync(
+                    transcriptDocument,
+                    tutor.TutorId);
+                tutor.TranscriptDocumentObjectKey = upload.ObjectKey;
             }
 
             tutor.NationalIdNumber = request.NationalIdNumber.Trim();
@@ -243,10 +262,10 @@ namespace BusinessLayer.Services
 
             await _db.SaveChangesAsync();
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
-        private TutorVerificationResponse ToTutorVerificationResponse(Tutor tutor)
+        private async Task<TutorVerificationResponse> ToTutorVerificationResponseAsync(Tutor tutor)
         {
             return new TutorVerificationResponse
             {
@@ -272,6 +291,10 @@ namespace BusinessLayer.Services
                 CertificateImageUrl = GenerateCertificateImageUrls(tutor.CertificatePublicId)
                     .FirstOrDefault(),
                 CertificateImageUrls = GenerateCertificateImageUrls(tutor.CertificatePublicId),
+                TranscriptDocumentUrl = string.IsNullOrWhiteSpace(tutor.TranscriptDocumentObjectKey)
+                    ? null
+                    : await _r2StorageService.CreateDownloadUrlAsync(
+                        tutor.TranscriptDocumentObjectKey),
 
                 BankName = tutor.BankAccount?.BankName,
                 AccountNumber = tutor.BankAccount?.AccountNumber,
@@ -309,10 +332,33 @@ namespace BusinessLayer.Services
 
             if (images.Count > MaxCertificateImages)
             {
-                throw new InvalidOperationException("Maximum 5 certificate images are allowed.");
+                throw new InvalidOperationException("Maximum 3 certificate images are allowed.");
             }
 
             return images;
+        }
+
+        private static void ValidateTranscriptDocument(
+            Microsoft.AspNetCore.Http.IFormFile? file)
+        {
+            if (file == null) return;
+
+            if (file.Length == 0)
+            {
+                throw new InvalidOperationException("Transcript document cannot be empty.");
+            }
+
+            if (file.Length > MaxTranscriptDocumentBytes)
+            {
+                throw new InvalidOperationException("Transcript document must be 2 MB or smaller.");
+            }
+
+            var extension = Path.GetExtension(file.FileName);
+            if (!AllowedTranscriptExtensions.Contains(extension))
+            {
+                throw new InvalidOperationException(
+                    "Transcript document must be a PDF, Word, Excel, PowerPoint, text, or CSV file.");
+            }
         }
 
         private static string SerializeCertificatePublicIds(List<string> publicIds)

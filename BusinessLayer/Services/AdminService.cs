@@ -21,6 +21,7 @@ namespace BusinessLayer.Services
     {
         private readonly EduNestDbContext _db;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IR2StorageService _r2StorageService;
         private readonly IAdminTutorRepository _adminTutorRepository;
         private readonly IPayOSChiPayoutService _payOSChiPayoutService;
         private readonly PayOSChiSetting _payOSChiSetting;
@@ -28,12 +29,14 @@ namespace BusinessLayer.Services
         public AdminService(
             EduNestDbContext db,
             ICloudinaryService cloudinaryService,
+            IR2StorageService r2StorageService,
             IAdminTutorRepository adminTutorRepository,
             IPayOSChiPayoutService payOSChiPayoutService,
             IOptions<PayOSChiSetting> payOSChiSetting)
         {
             _db = db;
             _cloudinaryService = cloudinaryService;
+            _r2StorageService = r2StorageService;
             _adminTutorRepository = adminTutorRepository;
             _payOSChiPayoutService = payOSChiPayoutService;
             _payOSChiSetting = payOSChiSetting.Value;
@@ -145,7 +148,8 @@ namespace BusinessLayer.Services
                 .ThenByDescending(t => t.TutorId)
                 .ToListAsync();
 
-            return tutors.Select(ToTutorVerificationResponse).ToList();
+            return (await Task.WhenAll(tutors.Select(ToTutorVerificationResponseAsync)))
+                .ToList();
         }
 
         public async Task<TutorVerificationResponse> GetTutorVerificationAsync(int tutorId)
@@ -156,7 +160,7 @@ namespace BusinessLayer.Services
                 .FirstOrDefaultAsync(t => t.TutorId == tutorId)
                 ?? throw new KeyNotFoundException("Tutor not found.");
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
         public async Task<TutorVerificationResponse> ApproveTutorAsync(int tutorId)
@@ -184,7 +188,7 @@ namespace BusinessLayer.Services
 
             await _db.SaveChangesAsync();
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
         public async Task<TutorVerificationResponse> RejectTutorAsync(
@@ -206,7 +210,7 @@ namespace BusinessLayer.Services
 
             await _db.SaveChangesAsync();
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
         public async Task<SubjectResponseDTO> CreateSubjectAsync(CreateSubjectDTO request)
@@ -396,7 +400,8 @@ namespace BusinessLayer.Services
                 .ThenByDescending(t => t.TutorId)
                 .ToListAsync();
 
-            return tutors.Select(ToTutorVerificationResponse).ToList();
+            return (await Task.WhenAll(tutors.Select(ToTutorVerificationResponseAsync)))
+                .ToList();
         }
 
         public async Task<TutorVerificationResponse> UpdateTutorAccountStatusAsync(
@@ -415,7 +420,7 @@ namespace BusinessLayer.Services
 
             await _adminTutorRepository.SaveChangesAsync();
 
-            return ToTutorVerificationResponse(tutor);
+            return await ToTutorVerificationResponseAsync(tutor);
         }
 
         public async Task<PayoutResponse> ApprovePayoutWithPayOSChiAsync(int payoutId)
@@ -582,7 +587,7 @@ namespace BusinessLayer.Services
                    value.Equals("PAID", StringComparison.OrdinalIgnoreCase);
         }
 
-        private TutorVerificationResponse ToTutorVerificationResponse(Tutor tutor)
+        private async Task<TutorVerificationResponse> ToTutorVerificationResponseAsync(Tutor tutor)
         {
             return new TutorVerificationResponse
             {
@@ -610,6 +615,10 @@ namespace BusinessLayer.Services
                 CertificateImageUrl = GenerateCertificateImageUrls(tutor.CertificatePublicId)
                     .FirstOrDefault(),
                 CertificateImageUrls = GenerateCertificateImageUrls(tutor.CertificatePublicId),
+                TranscriptDocumentUrl = string.IsNullOrWhiteSpace(tutor.TranscriptDocumentObjectKey)
+                    ? null
+                    : await _r2StorageService.CreateDownloadUrlAsync(
+                        tutor.TranscriptDocumentObjectKey),
 
                 BankName = tutor.BankAccount?.BankName,
                 BankBin = tutor.BankAccount?.BankBin,

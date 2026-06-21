@@ -23,6 +23,8 @@ namespace BusinessLayer.DTOs.Tutor
 
         public List<IFormFile> CertificateImages { get; set; } = new();
 
+        public IFormFile? TranscriptDocument { get; set; }
+
         [Required]
         public string BankName { get; set; } = string.Empty;
 
@@ -58,6 +60,7 @@ namespace BusinessLayer.DTOs.Tutor
         public string? CccdBackImageUrl { get; set; }
         public string? CertificateImageUrl { get; set; }
         public List<string> CertificateImageUrls { get; set; } = new();
+        public string? TranscriptDocumentUrl { get; set; }
 
         public string? BankName { get; set; }
         public string? AccountNumber { get; set; }

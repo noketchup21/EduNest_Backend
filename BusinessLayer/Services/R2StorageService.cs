@@ -64,6 +64,52 @@ namespace BusinessLayer.Services
                 FileSize: file.Length);
         }
 
+        public async Task<R2UploadResult> UploadTutorDocumentAsync(
+            IFormFile file,
+            int tutorId,
+            CancellationToken cancellationToken = default)
+        {
+            if (file == null || file.Length == 0)
+                throw new InvalidOperationException("File is required.");
+
+            var extension = Path.GetExtension(file.FileName);
+            var safeExtension = string.IsNullOrWhiteSpace(extension) ? ".bin" : extension;
+            var key = $"edunest-document/tutor/{tutorId}/{Guid.NewGuid():N}{safeExtension}";
+
+            await using var stream = file.OpenReadStream();
+
+            var request = new PutObjectRequest
+            {
+                BucketName = _setting.BucketName,
+                Key = key,
+                InputStream = stream,
+                ContentType = string.IsNullOrWhiteSpace(file.ContentType)
+                    ? "application/octet-stream"
+                    : file.ContentType,
+                AutoCloseStream = false,
+                DisablePayloadSigning = true,
+                DisableDefaultChecksumValidation = true
+            };
+
+            try
+            {
+                using var s3 = CreateClient();
+                await s3.PutObjectAsync(request, cancellationToken);
+            }
+            catch (AmazonS3Exception ex)
+            {
+                throw new InvalidOperationException(
+                    $"Cloudflare R2 upload failed ({ex.StatusCode}, {ex.ErrorCode}). Check bucket name, token permissions, and R2 credentials.",
+                    ex);
+            }
+
+            return new R2UploadResult(
+                ObjectKey: key,
+                FileName: file.FileName,
+                ContentType: file.ContentType,
+                FileSize: file.Length);
+        }
+
         public Task<string> CreateDownloadUrlAsync(
             string objectKey,
             string? downloadFileName = null)

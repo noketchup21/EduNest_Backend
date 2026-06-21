@@ -38,6 +38,7 @@ namespace DataAccessLayer.Entities
         public string? CccdFrontPublicId { get; set; }
         public string? CccdBackPublicId { get; set; }
         public string? CertificatePublicId { get; set; }
+        public string? TranscriptDocumentObjectKey { get; set; }
 
         public DateTime? VerificationSubmittedAt { get; set; }
         public DateTime? VerificationReviewedAt { get; set; }
