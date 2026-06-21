@@ -1396,6 +1396,10 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("text")
                         .HasColumnName("certificatepublicid");
 
+                    b.Property<string>("TranscriptDocumentObjectKey")
+                        .HasColumnType("text")
+                        .HasColumnName("transcriptdocumentobjectkey");
+
                     b.Property<bool>("IsVerified")
                         .HasColumnType("boolean")
                         .HasColumnName("isverified");

@@ -9,6 +9,11 @@ namespace BusinessLayer.IServices
             int availabilityId,
             CancellationToken cancellationToken = default);
 
+        Task<R2UploadResult> UploadTutorDocumentAsync(
+            IFormFile file,
+            int tutorId,
+            CancellationToken cancellationToken = default);
+
         Task<string> CreateDownloadUrlAsync(
             string objectKey,
             string? downloadFileName = null);
