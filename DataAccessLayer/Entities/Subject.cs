@@ -21,6 +21,21 @@ namespace DataAccessLayer.Entities
         [MaxLength(1000)]
         public string Description { get; set; }
 
+        [MaxLength(2000)]
+        public string? Objective { get; set; }
+
+        [MaxLength(4000)]
+        public string? LearningGoals { get; set; }
+
+        [MaxLength(4000)]
+        public string? ExpectedResults { get; set; }
+
+        [MaxLength(4000)]
+        public string? RequiredTopics { get; set; }
+
+        [MaxLength(4000)]
+        public string? CommonDifficulties { get; set; }
+
         // Navigation properties
         public virtual ICollection<TutorSubject> TutorSubjects { get; set; } = new List<TutorSubject>();
         public virtual ICollection<Availability> Availabilities { get; set; } = new List<Availability>();
