@@ -229,7 +229,12 @@ namespace BusinessLayer.Services
             var subject = new Subject
             {
                 Name = name,
-                Description = request.Description?.Trim() ?? string.Empty
+                Description = request.Description?.Trim() ?? string.Empty,
+                Objective = NormalizeOptionalText(request.Objective),
+                LearningGoals = NormalizeOptionalText(request.LearningGoals),
+                ExpectedResults = NormalizeOptionalText(request.ExpectedResults),
+                RequiredTopics = NormalizeOptionalText(request.RequiredTopics),
+                CommonDifficulties = NormalizeOptionalText(request.CommonDifficulties)
             };
 
             _db.Subjects.Add(subject);
@@ -239,8 +244,18 @@ namespace BusinessLayer.Services
             {
                 SubjectId = subject.SubjectId,
                 Name = subject.Name,
-                Description = subject.Description
+                Description = subject.Description,
+                Objective = subject.Objective,
+                LearningGoals = subject.LearningGoals,
+                ExpectedResults = subject.ExpectedResults,
+                RequiredTopics = subject.RequiredTopics,
+                CommonDifficulties = subject.CommonDifficulties
             };
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         public async Task<List<PayoutResponse>> GetPayoutsAsync()

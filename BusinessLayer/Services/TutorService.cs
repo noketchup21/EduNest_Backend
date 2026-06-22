@@ -265,6 +265,135 @@ namespace BusinessLayer.Services
             return await ToTutorVerificationResponseAsync(tutor);
         }
 
+        public async Task<TeachingPreparationGuideResponse> GenerateTeachingPreparationGuideAsync(
+            int tutorUserId,
+            GenerateTeachingPreparationGuideRequest request)
+        {
+            if (request.SubjectId <= 0)
+                throw new InvalidOperationException("A base subject is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Technology))
+                throw new InvalidOperationException("Technology or teaching focus is required.");
+
+            var tutorExists = await _db.Tutors.AnyAsync(t => t.UserId == tutorUserId);
+            if (!tutorExists)
+                throw new KeyNotFoundException("Tutor profile not found.");
+
+            var subject = await _db.Subjects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SubjectId == request.SubjectId)
+                ?? throw new KeyNotFoundException("Base subject not found.");
+
+            var technology = request.Technology.Trim();
+            var studentLevel = string.IsNullOrWhiteSpace(request.StudentLevel)
+                ? "Beginner"
+                : request.StudentLevel.Trim();
+            var lessonFocus = request.LessonFocus?.Trim() ?? string.Empty;
+            var requiredTopics = ToGuideItems(subject.RequiredTopics);
+            var learningGoals = ToGuideItems(subject.LearningGoals);
+            var expectedResults = ToGuideItems(subject.ExpectedResults);
+            var difficulties = ToGuideItems(subject.CommonDifficulties);
+
+            if (requiredTopics.Count == 0)
+            {
+                requiredTopics.Add($"Review the core concepts in {subject.Name} before adapting them to {technology}.");
+            }
+
+            if (learningGoals.Count == 0 && !string.IsNullOrWhiteSpace(subject.Description))
+            {
+                learningGoals.Add(subject.Description.Trim());
+            }
+
+            var knowledgeItems = requiredTopics
+                .Select(topic => $"Understand {topic} well enough to explain it using {technology}.")
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(lessonFocus))
+            {
+                knowledgeItems.Insert(
+                    0,
+                    $"Be ready to connect {lessonFocus} to the base subject objectives.");
+            }
+
+            var exampleItems = requiredTopics
+                .Take(5)
+                .Select(topic => $"Prepare one small {technology} example for {topic}.")
+                .ToList();
+
+            if (difficulties.Count == 0)
+            {
+                difficulties.Add("Identify terminology that may be unfamiliar to a new learner and prepare a simple explanation.");
+                difficulties.Add("Prepare a short check-in question that reveals whether the learner understands the concept.");
+            }
+
+            var checklistItems = new List<string>
+            {
+                $"Read the admin objective and goals for {subject.Name} before preparing your materials.",
+                $"Test every {technology} example yourself before the lesson.",
+                "Prepare one guided practice activity and one independent exercise.",
+                "Decide how you will check that the learner reached the expected result."
+            };
+
+            return new TeachingPreparationGuideResponse
+            {
+                SubjectId = subject.SubjectId,
+                SubjectName = subject.Name,
+                Technology = technology,
+                StudentLevel = studentLevel,
+                LessonFocus = lessonFocus,
+                Objective = subject.Objective?.Trim() ?? string.Empty,
+                Sections = new List<TeachingPreparationGuideSection>
+                {
+                    new()
+                    {
+                        Title = "Admin learning goals",
+                        Items = learningGoals.Count == 0
+                            ? new List<string> { "No learning goals have been added yet. Use the subject description as your starting point." }
+                            : learningGoals
+                    },
+                    new()
+                    {
+                        Title = "What you should understand before teaching",
+                        Items = knowledgeItems
+                    },
+                    new()
+                    {
+                        Title = "Examples and practice to prepare",
+                        Items = exampleItems
+                    },
+                    new()
+                    {
+                        Title = "Expected learner results",
+                        Items = expectedResults.Count == 0
+                            ? new List<string> { "Use the admin objective to decide what the learner should be able to do after the lesson." }
+                            : expectedResults
+                    },
+                    new()
+                    {
+                        Title = "Common misunderstandings to anticipate",
+                        Items = difficulties
+                    },
+                    new()
+                    {
+                        Title = "Preparation checklist",
+                        Items = checklistItems
+                    }
+                }
+            };
+        }
+
+        private static List<string> ToGuideItems(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return new List<string>();
+
+            return value
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(item => item.Trim().TrimStart('-', '•', '*').Trim())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         private async Task<TutorVerificationResponse> ToTutorVerificationResponseAsync(Tutor tutor)
         {
             return new TutorVerificationResponse

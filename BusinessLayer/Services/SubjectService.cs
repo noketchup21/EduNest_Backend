@@ -71,10 +71,30 @@ namespace BusinessLayer.Services
             if (!string.IsNullOrWhiteSpace(dto.Description))
                 subject.Description = dto.Description;
 
+            if (dto.Objective != null)
+                subject.Objective = NormalizeOptionalText(dto.Objective);
+
+            if (dto.LearningGoals != null)
+                subject.LearningGoals = NormalizeOptionalText(dto.LearningGoals);
+
+            if (dto.ExpectedResults != null)
+                subject.ExpectedResults = NormalizeOptionalText(dto.ExpectedResults);
+
+            if (dto.RequiredTopics != null)
+                subject.RequiredTopics = NormalizeOptionalText(dto.RequiredTopics);
+
+            if (dto.CommonDifficulties != null)
+                subject.CommonDifficulties = NormalizeOptionalText(dto.CommonDifficulties);
+
             await _subjectRepository.UpdateAsync(subject);
             await _subjectRepository.SaveChangesAsync();
 
             return subject.Adapt<SubjectResponseDTO>();
+        }
+
+        private static string? NormalizeOptionalText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
         public async Task<string> DeleteSubjectAsync(int subjectId)

@@ -144,6 +144,16 @@ namespace EduNest_Backend.Controllers
                 request));
         }
 
+        [Authorize(Roles = "Tutor")]
+        [HttpPost("teaching-guide")]
+        public async Task<ActionResult<TeachingPreparationGuideResponse>> GenerateTeachingPreparationGuide(
+            [FromBody] GenerateTeachingPreparationGuideRequest request)
+        {
+            return Ok(await _tutorService.GenerateTeachingPreparationGuideAsync(
+                GetCurrentUserId(),
+                request));
+        }
+
         // ── Helper ────────────────────────────────────────────────────────────
         private int GetCurrentUserId()
         {
