@@ -138,7 +138,7 @@ namespace BusinessLayer.Services
                 EndTime = request.EndTime,
                 Mode = mode,
                 OfflineAreas = offlineAreas,
-                Level = request.Level.Trim(),
+                Level = "General",
                 Slot = slotCount,
                 PricePerSlot = request.PricePerSlot,
                 Status = "Active"

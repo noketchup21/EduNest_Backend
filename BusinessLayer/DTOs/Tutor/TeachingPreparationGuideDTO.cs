@@ -7,12 +7,6 @@ namespace BusinessLayer.DTOs.Tutor
         [Range(1, int.MaxValue)]
         public int SubjectId { get; set; }
 
-        [Required, MaxLength(100)]
-        public string Technology { get; set; } = string.Empty;
-
-        [Required, MaxLength(50)]
-        public string StudentLevel { get; set; } = string.Empty;
-
         [MaxLength(300)]
         public string? LessonFocus { get; set; }
     }
@@ -21,8 +15,6 @@ namespace BusinessLayer.DTOs.Tutor
     {
         public int SubjectId { get; set; }
         public string SubjectName { get; set; } = string.Empty;
-        public string Technology { get; set; } = string.Empty;
-        public string StudentLevel { get; set; } = string.Empty;
         public string LessonFocus { get; set; } = string.Empty;
         public string Objective { get; set; } = string.Empty;
         public List<TeachingPreparationGuideSection> Sections { get; set; } = new();
