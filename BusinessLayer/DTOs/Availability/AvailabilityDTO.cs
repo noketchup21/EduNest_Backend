@@ -58,9 +58,6 @@ namespace BusinessLayer.DTOs.Availability
         [MaxLength(500)]
         public string? OfflineAreas { get; set; }
 
-        [Required]
-        public string Level { get; set; } = string.Empty;
-
         public int Slot { get; set; }
 
         [Range(1000, double.MaxValue)]
