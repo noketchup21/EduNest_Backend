@@ -85,6 +85,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+const string FrontendCorsPolicy = "FrontendCorsPolicy";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:55081")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // Register email settings
 builder.Services.Configure<EmailSetting>(
     builder.Configuration.GetSection(EmailSetting.SectionName));
@@ -240,6 +253,8 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(uploadsRoot),
     RequestPath = "/uploads"
 });
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
