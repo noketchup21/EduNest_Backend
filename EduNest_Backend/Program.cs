@@ -92,7 +92,7 @@ builder.Services.AddCors(options =>
     {
         policy
             .WithOrigins(
-                "https://edunest-jet.vercel.app/")
+                "https://edunest-jet.vercel.app")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
