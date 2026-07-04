@@ -1,3 +1,5 @@
+using DataAccessLayer.Entities;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DataAccessLayer.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(EduNestDbContext))]
+    [Migration("20260704000000_AddAvailabilityDescription")]
     public partial class AddAvailabilityDescription : Migration
     {
         /// <inheritdoc />
