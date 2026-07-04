@@ -25,6 +25,7 @@ namespace BusinessLayer.DTOs.Availability
         public string Status { get; set; } = string.Empty;
         public string Mode { get; set; } = string.Empty;
         public string? OfflineAreas { get; set; }
+        public string? Description { get; set; }
         public string Level { get; set; } = string.Empty;
         public int TutorUserId { get; set; }
         public string TutorName { get; set; } = string.Empty;
@@ -58,6 +59,9 @@ namespace BusinessLayer.DTOs.Availability
         [MaxLength(500)]
         public string? OfflineAreas { get; set; }
 
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
         public int Slot { get; set; }
 
         [Range(1000, double.MaxValue)]
@@ -78,6 +82,8 @@ namespace BusinessLayer.DTOs.Availability
         public string? Mode { get; set; }
         [MaxLength(500)]
         public string? OfflineAreas { get; set; }
+        [MaxLength(1000)]
+        public string? Description { get; set; }
         public string? Level { get; set; }
     }
 

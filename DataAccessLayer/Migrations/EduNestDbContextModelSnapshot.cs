@@ -141,6 +141,11 @@ namespace DataAccessLayer.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("dayofweek");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
                     b.Property<DateTime>("EndCourseTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("endcoursetime");
