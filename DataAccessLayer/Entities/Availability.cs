@@ -28,6 +28,9 @@ namespace DataAccessLayer.Entities
         [MaxLength(500)]
         public string? OfflineAreas { get; set; }
 
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
 

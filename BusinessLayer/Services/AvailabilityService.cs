@@ -112,6 +112,7 @@ namespace BusinessLayer.Services
 
             var mode = NormalizeMode(request.Mode);
             var offlineAreas = NormalizeOfflineAreas(mode, request.OfflineAreas);
+            var description = NormalizeDescription(request.Description);
 
             await EnsureNoTutorAvailabilityConflictAsync(
                 tutor.TutorId,
@@ -138,6 +139,7 @@ namespace BusinessLayer.Services
                 EndTime = request.EndTime,
                 Mode = mode,
                 OfflineAreas = offlineAreas,
+                Description = description,
                 Level = "General",
                 Slot = slotCount,
                 PricePerSlot = request.PricePerSlot,
@@ -194,6 +196,9 @@ namespace BusinessLayer.Services
 
             if (request.OfflineAreas != null)
                 availability.OfflineAreas = request.OfflineAreas.Trim();
+
+            if (request.Description != null)
+                availability.Description = NormalizeDescription(request.Description);
 
             if (!string.IsNullOrWhiteSpace(request.Level))
                 availability.Level = request.Level.Trim();
@@ -418,6 +423,7 @@ namespace BusinessLayer.Services
                 Status = a.Status,
                 Mode = a.Mode,
                 OfflineAreas = a.OfflineAreas,
+                Description = a.Description,
                 Level = a.Level,
 
                 HasBookings = hasBookings
@@ -601,6 +607,19 @@ namespace BusinessLayer.Services
                 throw new InvalidOperationException("Offline tutoring areas must be 500 characters or less.");
 
             return areas;
+        }
+
+        private static string? NormalizeDescription(string? description)
+        {
+            var value = description?.Trim();
+
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+
+            if (value.Length > 1000)
+                throw new InvalidOperationException("Description must be 1000 characters or less.");
+
+            return value;
         }
 
         private string? AvatarUrl(User? user)
