@@ -161,7 +161,6 @@ namespace BusinessLayer.Services
             UpsertMaterialItemRequest request)
         {
             var material = await _db.Materials
-                .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.MaterialId == materialId)
                 ?? throw new KeyNotFoundException("Material not found.");
 
