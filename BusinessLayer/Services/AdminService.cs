@@ -84,10 +84,22 @@ namespace BusinessLayer.Services
 
         public async Task TrackSiteVisitAsync(TrackAppMetricRequest request)
         {
+            var deviceId = request.DeviceId?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(deviceId))
+            {
+                var alreadyTracked = await _db.AppMetrics.AnyAsync(x =>
+                    x.Type == "SiteVisit" &&
+                    x.DeviceId == deviceId);
+
+                if (alreadyTracked)
+                    return;
+            }
+
             _db.AppMetrics.Add(new AppMetric
             {
                 Type = "SiteVisit",
-                DeviceId = request.DeviceId?.Trim(),
+                DeviceId = deviceId,
                 Platform = request.Platform,
                 AppVersion = request.AppVersion,
                 CreatedAt = DateTime.UtcNow
