@@ -42,6 +42,15 @@ namespace EduNest_Backend.Controllers
             return Ok(new { message = "Install tracked" });
         }
 
+        [AllowAnonymous]
+        [HttpPost("site/visit")]
+        public async Task<ActionResult> TrackSiteVisit(
+            [FromBody] TrackAppMetricRequest request)
+        {
+            await _adminService.TrackSiteVisitAsync(request);
+            return Ok(new { message = "Site visit tracked" });
+        }
+
         [Authorize(Roles = "Admin")]
         [HttpGet("dashboard")]
         public async Task<ActionResult<AdminDashboardResponse>> GetDashboard()

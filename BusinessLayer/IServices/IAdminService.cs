@@ -15,6 +15,7 @@ namespace BusinessLayer.IServices
     {
         Task TrackDownloadAsync(TrackAppMetricRequest request);
         Task TrackInstallAsync(TrackAppMetricRequest request);
+        Task TrackSiteVisitAsync(TrackAppMetricRequest request);
 
         Task<AdminDashboardResponse> GetDashboardAsync();
 

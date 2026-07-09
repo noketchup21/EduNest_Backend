@@ -82,6 +82,20 @@ namespace BusinessLayer.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task TrackSiteVisitAsync(TrackAppMetricRequest request)
+        {
+            _db.AppMetrics.Add(new AppMetric
+            {
+                Type = "SiteVisit",
+                DeviceId = request.DeviceId?.Trim(),
+                Platform = request.Platform,
+                AppVersion = request.AppVersion,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<AdminDashboardResponse> GetDashboardAsync()
         {
             var completedLessons = await _db.Lessons
@@ -104,11 +118,32 @@ namespace BusinessLayer.Services
 
             var platformRevenue = Math.Round(grossLessonRevenue * 0.20m, 2);
             var tutorRevenue = grossLessonRevenue - platformRevenue;
+            var today = DateTime.UtcNow.Date;
+            var start = today.AddDays(-29);
+            var siteVisitDates = await _db.AppMetrics
+                .Where(x => x.Type == "SiteVisit" && x.CreatedAt >= start)
+                .Select(x => x.CreatedAt)
+                .ToListAsync();
+            var visitsByDay = siteVisitDates
+                .GroupBy(x => x.Date)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             return new AdminDashboardResponse
             {
                 TotalDownloads = await _db.AppMetrics.CountAsync(x => x.Type == "Download"),
                 TotalInstalls = await _db.AppMetrics.CountAsync(x => x.Type == "Install"),
+                TotalSiteVisits = await _db.AppMetrics.CountAsync(x => x.Type == "SiteVisit"),
+                SiteVisitsLast30Days = Enumerable.Range(0, 30)
+                    .Select(i =>
+                    {
+                        var day = start.AddDays(i);
+                        return new DailySiteVisitResponse
+                        {
+                            Date = day,
+                            Count = visitsByDay.TryGetValue(day, out var count) ? count : 0
+                        };
+                    })
+                    .ToList(),
 
                 TotalSubjects = await _db.Subjects.CountAsync(),
 
