@@ -11,6 +11,8 @@ namespace BusinessLayer.DTOs.Admin
     {
         public int TotalDownloads { get; set; }
         public int TotalInstalls { get; set; }
+        public int TotalSiteVisits { get; set; }
+        public List<DailySiteVisitResponse> SiteVisitsLast30Days { get; set; } = new();
 
         public int TotalSubjects { get; set; }
 
@@ -25,6 +27,12 @@ namespace BusinessLayer.DTOs.Admin
         public decimal GrossLessonRevenue { get; set; }
         public decimal PlatformRevenue { get; set; }
         public decimal TutorRevenue { get; set; }
+    }
+
+    public sealed class DailySiteVisitResponse
+    {
+        public DateTime Date { get; set; }
+        public int Count { get; set; }
     }
 
     public sealed class TrackAppMetricRequest
