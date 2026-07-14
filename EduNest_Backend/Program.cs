@@ -22,6 +22,8 @@ using Microsoft.OpenApi.Models;
 using Npgsql;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 
+Environment.SetEnvironmentVariable("DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<EduNestDbContext>(options =>
