@@ -64,7 +64,7 @@ namespace BusinessLayer.DTOs.Availability
 
         public int Slot { get; set; }
 
-        [Range(1000, double.MaxValue)]
+        [Range(0, double.MaxValue)]
         public decimal PricePerSlot { get; set; }
     }
 

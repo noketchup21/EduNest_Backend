@@ -107,8 +107,8 @@ namespace BusinessLayer.Services
                     "Your tutor profile is waiting for admin approval. You cannot create availability yet.");
             }
 
-            if (request.PricePerSlot <= 0)
-                throw new InvalidOperationException("Price per lesson must be greater than 0.");
+            if (request.PricePerSlot < 0)
+                throw new InvalidOperationException("Price per lesson cannot be negative.");
 
             var mode = NormalizeMode(request.Mode);
             var offlineAreas = NormalizeOfflineAreas(mode, request.OfflineAreas);
@@ -217,8 +217,8 @@ namespace BusinessLayer.Services
 
             if (request.PricePerSlot.HasValue)
             {
-                if (request.PricePerSlot.Value <= 0)
-                    throw new InvalidOperationException("Price per lesson must be greater than 0.");
+                if (request.PricePerSlot.Value < 0)
+                    throw new InvalidOperationException("Price per lesson cannot be negative.");
 
                 availability.PricePerSlot = request.PricePerSlot.Value;
             }
