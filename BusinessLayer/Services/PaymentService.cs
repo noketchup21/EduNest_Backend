@@ -51,6 +51,9 @@ namespace BusinessLayer.Services
             if (booking.Status == "Expired")
                 throw new InvalidOperationException("This booking has expired. Please create a new booking.");
 
+            if (booking.PriceAtBooking <= 0)
+                throw new InvalidOperationException("This booking is free and does not require payment.");
+
             var existing = booking.Payments
                 .Where(p => p.Status == "Pending")
                 .OrderByDescending(p => p.CreatedAt)

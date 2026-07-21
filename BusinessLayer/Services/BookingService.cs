@@ -1,4 +1,7 @@
-﻿using BusinessLayer.DTOs.Booking;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using BusinessLayer.DTOs.Booking;
 using BusinessLayer.IServices;
 using DataAccessLayer.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -38,9 +41,6 @@ namespace BusinessLayer.Services
             if (availability.Slot <= 0)
                 throw new InvalidOperationException("This course has no lessons.");
 
-            if (availability.PricePerSlot <= 0)
-                throw new InvalidOperationException("Invalid course price.");
-
             var alreadyBooked = availability.Bookings.Any(b =>
                 !b.IsDeleted &&
                 (b.Status == "Confirmed" ||
@@ -68,6 +68,7 @@ namespace BusinessLayer.Services
             }
 
             var totalPrice = availability.PricePerSlot * Math.Max(1, availability.Slot);
+            var isFreeCourse = totalPrice == 0;
 
             var booking = new Booking
             {
@@ -76,12 +77,16 @@ namespace BusinessLayer.Services
                 ParentId = null,
                 StudentId = null,
                 PriceAtBooking = totalPrice,
-                Status = "Pending",
+                Status = isFreeCourse ? "Confirmed" : "Pending",
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
 
             _db.Bookings.Add(booking);
+
+            if (isFreeCourse)
+                EnsureLessonsForBooking(booking, availability);
+
             await _db.SaveChangesAsync();
 
             return ToBookingResponse(booking, availability);
@@ -175,6 +180,43 @@ namespace BusinessLayer.Services
             return expiredCount;
         }
 
+        private void EnsureLessonsForBooking(Booking booking, Availability availability)
+        {
+            if (_db.Lessons.Any(l => l.BookingId == booking.BookingId))
+                return;
+
+            var days = ParseDaysOfWeek(availability.DayOfWeek);
+            var vietnamTimeZone = GetVietnamTimeZone();
+            var duration = Math.Max(
+                30,
+                (int)(availability.EndTime - availability.StartTime).TotalMinutes);
+
+            for (var date = availability.StartCourseTime.Date;
+                 date <= availability.EndCourseTime.Date;
+                 date = date.AddDays(1))
+            {
+                if (!days.Contains(date.DayOfWeek))
+                    continue;
+
+                var localLessonTime = DateTime.SpecifyKind(
+                    date.Add(availability.StartTime),
+                    DateTimeKind.Unspecified);
+
+                var utcLessonTime = TimeZoneInfo.ConvertTimeToUtc(
+                    localLessonTime,
+                    vietnamTimeZone);
+
+                _db.Lessons.Add(new Lesson
+                {
+                    BookingId = booking.BookingId,
+                    ScheduleTime = utcLessonTime,
+                    Duration = duration,
+                    Status = "Scheduled",
+                    MeetingLink = string.Empty
+                });
+            }
+        }
+
         private static BookingResponse ToBookingResponse(
             Booking booking,
             Availability availability)
@@ -196,6 +238,32 @@ namespace BusinessLayer.Services
                 Status = booking.Status,
                 CreatedAt = booking.CreatedAt
             };
+        }
+
+        private static HashSet<DayOfWeek> ParseDaysOfWeek(string value)
+        {
+            var days = value
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(day => Enum.TryParse<DayOfWeek>(day, true, out var parsed)
+                    ? parsed
+                    : DayOfWeek.Monday)
+                .ToHashSet();
+
+            return days.Count == 0
+                ? new HashSet<DayOfWeek> { DayOfWeek.Monday }
+                : days;
+        }
+
+        private static TimeZoneInfo GetVietnamTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            catch
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
         }
     }
 }
