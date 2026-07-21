@@ -83,11 +83,13 @@ namespace BusinessLayer.Services
             };
 
             _db.Bookings.Add(booking);
+            await _db.SaveChangesAsync();
 
             if (isFreeCourse)
+            {
                 EnsureLessonsForBooking(booking, availability);
-
-            await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
+            }
 
             return ToBookingResponse(booking, availability);
         }
